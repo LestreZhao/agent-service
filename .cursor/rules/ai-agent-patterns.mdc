@@ -1,0 +1,216 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI 代理开发模式
+
+## LangGraph 工作流设计
+
+本项目使用 LangGraph 构建多智能体协作系统。主要工作流定义在 [src/workflow.py](mdc:src/workflow.py)。
+
+### 状态管理
+
+使用 TypedDict 定义工作流状态：
+
+```python
+from typing import TypedDict, List, Any
+from langgraph import StateGraph
+
+class WorkflowState(TypedDict):
+    messages: List[Any]
+    current_task: str
+    results: dict
+    error: str
+```
+
+### 代理节点设计
+
+每个代理应该是一个独立的函数，接受状态并返回更新后的状态：
+
+```python
+async def search_agent(state: WorkflowState) -> WorkflowState:
+    """搜索代理：执行网络搜索任务"""
+    # 执行搜索逻辑
+    search_results = await perform_search(state["current_task"])
+    
+    # 更新状态
+    state["results"]["search"] = search_results
+    return state
+```
+
+### 条件路由
+
+使用条件函数决定工作流的下一步：
+
+```python
+def should_continue_search(state: WorkflowState) -> str:
+    """根据当前状态决定下一步操作"""
+    if state.get("error"):
+        return "error_handler"
+    elif len(state["results"]) < 3:
+        return "search_agent"
+    else:
+        return "analysis_agent"
+```
+
+## LangChain 集成模式
+
+### 工具定义
+
+在 [src/tools/](mdc:src/tools) 目录中定义专用工具：
+
+```python
+from langchain.tools import BaseTool
+from typing import Optional, Type
+from pydantic import BaseModel, Field
+
+class SearchInput(BaseModel):
+    query: str = Field(description="搜索查询")
+
+class WebSearchTool(BaseTool):
+    name = "web_search"
+    description = "在网络上搜索信息"
+    args_schema: Type[BaseModel] = SearchInput
+    
+    def _run(self, query: str) -> str:
+        # 实现搜索逻辑
+        return search_results
+```
+
+### 提示词管理
+
+将提示词模板存储在 [src/prompts/](mdc:src/prompts) 目录中：
+
+```python
+from langchain.prompts import PromptTemplate
+
+ANALYSIS_PROMPT = PromptTemplate(
+    input_variables=["data", "task"],
+    template="""
+    基于以下数据分析任务：{task}
+    
+    数据：
+    {data}
+    
+    请提供详细的分析结果。
+    """
+)
+```
+
+## 错误处理和重试
+
+### 代理级错误处理
+
+```python
+import asyncio
+from typing import Optional
+
+async def robust_agent_call(
+    agent_func, 
+    state: WorkflowState, 
+    max_retries: int = 3,
+    backoff_factor: float = 1.0
+) -> WorkflowState:
+    """带重试机制的代理调用"""
+    for attempt in range(max_retries):
+        try:
+            return await agent_func(state)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                state["error"] = str(e)
+                return state
+            await asyncio.sleep(backoff_factor * (2 ** attempt))
+    return state
+```
+
+### API 调用最佳实践
+
+```python
+import httpx
+from typing import AsyncGenerator
+
+async def make_api_call(url: str, data: dict) -> dict:
+    """标准 API 调用模式"""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.post(url, json=data)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            # 记录错误并重新抛出
+            logger.error(f"API 调用失败 {url}: {e}")
+            raise
+```
+
+## 配置管理
+
+### 环境变量
+
+在 [src/config/](mdc:src/config) 目录中管理配置：
+
+```python
+import os
+from pydantic import BaseSettings
+
+class Settings(BaseSettings):
+    openai_api_key: str
+    deepseek_api_key: str
+    max_concurrent_requests: int = 5
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+```
+
+### 模型配置
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
+
+def get_llm_model(model_type: str = "openai"):
+    """获取配置好的 LLM 模型"""
+    if model_type == "openai":
+        return ChatOpenAI(
+            model="gpt-4",
+            temperature=0.1,
+            api_key=settings.openai_api_key
+        )
+    elif model_type == "deepseek":
+        return ChatDeepSeek(
+            model="deepseek-chat",
+            api_key=settings.deepseek_api_key
+        )
+```
+
+## 测试模式
+
+### 代理单元测试
+
+```python
+import pytest
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_search_agent():
+    """测试搜索代理功能"""
+    # 准备测试数据
+    test_state = {
+        "current_task": "搜索 DeepSeek R1",
+        "results": {},
+        "error": ""
+    }
+    
+    # 模拟外部调用
+    with patch('src.agents.search.perform_search') as mock_search:
+        mock_search.return_value = {"results": ["test"]}
+        
+        # 执行测试
+        result = await search_agent(test_state)
+        
+        # 验证结果
+        assert "search" in result["results"]
+        assert len(result["results"]["search"]["results"]) > 0
+```

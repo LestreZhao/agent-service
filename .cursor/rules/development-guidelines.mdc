@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 开发指南
+
+## 环境设置
+
+### 虚拟环境
+项目使用 `uv` 作为包管理器：
+```bash
+# 激活虚拟环境
+source .venv/bin/activate
+
+# 安装依赖
+uv sync
+
+# 运行程序
+.venv/bin/python main.py
+```
+
+### 环境变量配置
+复制 [.env.example](mdc:.env.example) 到 `.env` 并配置：
+
+```ini
+# LLM配置
+REASONING_MODEL=o1-mini
+BASIC_MODEL=gpt-4o
+VL_MODEL=gpt-4o
+
+# API密钥
+REASONING_API_KEY=your_key
+BASIC_API_KEY=your_key
+VL_API_KEY=your_key
+
+# 可选：浏览器路径
+CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+```
+
+## 调试指南
+
+### 浏览器相关问题
+- 如果遇到端口9222连接错误，检查 [src/tools/browser.py](mdc:src/tools/browser.py) 的BrowserConfig配置
+- 使用 `headless=True` 避免浏览器窗口干扰
+- 确保不设置连接参数，让程序启动独立实例
+
+### LLM配置问题
+- 检查 [src/config/agents.py](mdc:src/config/agents.py) 中的智能体-LLM映射
+- 验证 [src/agents/llm.py](mdc:src/agents/llm.py) 中的LLM工厂函数
+- 确保API密钥正确配置
+
+### 常用调试命令
+```bash
+# 检查依赖
+pip list | grep browser-use
+
+# 测试导入
+.venv/bin/python -c "import browser_use; print(dir(browser_use))"
+
+# 启动调试模式
+.venv/bin/python main.py --debug
+```
+
+## 代码规范
+
+### 导入顺序
+1. 标准库
+2. 第三方库  
+3. 本地模块 (src.*)
+
+### 工具开发
+新工具应放在 [src/tools/](mdc:src/tools) 目录下，并：
+1. 继承 `BaseTool`
+2. 使用 `create_logged_tool` 装饰器
+3. 在 [src/tools/__init__.py](mdc:src/tools/__init__.py) 中导出
+
+### 智能体配置
+- 智能体定义在 [src/agents/agents.py](mdc:src/agents/agents.py)
+- LLM类型映射在 [src/config/agents.py](mdc:src/config/agents.py)
+- 提示词模板在 [src/prompts/](mdc:src/prompts) 目录

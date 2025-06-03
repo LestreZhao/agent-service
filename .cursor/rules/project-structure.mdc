@@ -1,0 +1,49 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# LangManus 项目结构指南
+
+## 核心架构
+
+LangManus 是一个多智能体协作系统，使用 LangGraph 构建工作流。
+
+### 主要目录结构
+
+- **[src/](mdc:src/)** - 源代码根目录
+  - **[src/agents/](mdc:src/agents/)** - 智能体定义
+    - [src/agents/agents.py](mdc:src/agents/agents.py) - 各类智能体实例
+    - [src/agents/llm.py](mdc:src/agents/llm.py) - LLM配置和工厂函数
+  - **[src/config/](mdc:src/config/)** - 配置管理
+    - [src/config/env.py](mdc:src/config/env.py) - 环境变量配置
+    - [src/config/agents.py](mdc:src/config/agents.py) - 智能体-LLM映射配置
+  - **[src/tools/](mdc:src/tools/)** - 工具集合
+    - [src/tools/browser.py](mdc:src/tools/browser.py) - 浏览器交互工具
+    - [src/tools/search.py](mdc:src/tools/search.py) - 搜索工具
+    - [src/tools/python_repl.py](mdc:src/tools/python_repl.py) - Python执行工具
+  - **[src/graph/](mdc:src/graph/)** - 工作流图定义
+    - [src/graph/builder.py](mdc:src/graph/builder.py) - 图构建器
+    - [src/graph/nodes.py](mdc:src/graph/nodes.py) - 节点定义
+  - **[src/prompts/](mdc:src/prompts/)** - 提示词模板
+
+### 入口文件
+
+- [main.py](mdc:main.py) - 命令行入口
+- [server.py](mdc:server.py) - Web服务入口
+- [src/api/app.py](mdc:src/api/app.py) - FastAPI应用定义
+
+### 配置文件
+
+- [pyproject.toml](mdc:pyproject.toml) - Python项目配置
+- [uv.lock](mdc:uv.lock) - 依赖锁定文件
+- [.env](mdc:.env) - 环境变量（需要创建）
+
+## 智能体类型
+
+1. **研究员 (researcher)** - 信息收集和网络搜索
+2. **程序员 (coder)** - 代码执行和技术实现  
+3. **浏览器 (browser)** - 网页交互和自动化
+4. **报告员 (reporter)** - 结果整理和报告生成
+5. **协调员 (coordinator)** - 任务分发和流程控制
+6. **计划员 (planner)** - 任务规划和分解

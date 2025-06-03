@@ -1,0 +1,57 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor 规则总览
+
+这个目录包含了 LangManus 项目的 Cursor AI 辅助开发规则，帮助 AI 更好地理解和协助项目开发。
+
+## 规则文件说明
+
+### [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
+浏览器配置相关规则，包含：
+- browser-use 库的配置方法
+- 常见浏览器启动问题解决方案
+- 版本兼容性说明
+
+### [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)  
+项目整体架构指南，包含：
+- 目录结构说明
+- 核心文件功能介绍
+- 智能体类型概览
+
+### [development-guidelines.mdc](mdc:.cursor/rules/development-guidelines.mdc)
+开发规范和最佳实践，包含：
+- 环境设置指南
+- 代码规范要求
+- 调试方法说明
+
+### [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
+故障排除手册，包含：
+- 常见错误及解决方案
+- 诊断步骤指南
+- 调试技巧总结
+
+## 使用说明
+
+这些规则会自动被 Cursor AI 加载，帮助：
+1. **代码理解** - 快速了解项目结构和设计理念
+2. **问题诊断** - 根据错误信息快速定位问题
+3. **开发辅助** - 遵循项目规范进行代码修改
+4. **配置管理** - 正确设置开发环境和依赖
+
+## 维护说明
+
+当项目结构或配置发生重大变化时，请及时更新相关规则文件，确保 AI 辅助的准确性。
+
+### 更新时机
+- 添加新的智能体类型
+- 修改浏览器配置方式  
+- 更新依赖库版本
+- 改变项目结构
+
+### 文件格式
+- 使用 `.mdc` 扩展名
+- 支持 Markdown 语法
+- 使用 `[filename](mdc:filename)` 引用项目文件

@@ -1,0 +1,421 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 会话管理实现指南
+
+## 会话存储方案
+
+### 1. 内存存储（开发环境）
+
+```python
+from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+import uuid
+from dataclasses import dataclass, field
+
+@dataclass
+class Session:
+    session_id: str
+    messages: List[dict] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    last_accessed: datetime = field(default_factory=datetime.utcnow)
+    metadata: dict = field(default_factory=dict)
+
+class InMemorySessionStore:
+    """内存中的会话存储（仅用于开发）"""
+    
+    def __init__(self, max_sessions: int = 1000, ttl_hours: int = 24):
+        self._sessions: Dict[str, Session] = {}
+        self._max_sessions = max_sessions
+        self._ttl = timedelta(hours=ttl_hours)
+    
+    def create_session(self) -> str:
+        """创建新会话"""
+        session_id = str(uuid.uuid4())
+        self._sessions[session_id] = Session(session_id=session_id)
+        self._cleanup_old_sessions()
+        return session_id
+    
+    def get_session(self, session_id: str) -> Optional[Session]:
+        """获取会话"""
+        session = self._sessions.get(session_id)
+        if session:
+            session.last_accessed = datetime.utcnow()
+            return session
+        return None
+    
+    def update_session(self, session_id: str, messages: List[dict]) -> bool:
+        """更新会话消息"""
+        session = self.get_session(session_id)
+        if session:
+            session.messages = messages
+            return True
+        return False
+    
+    def delete_session(self, session_id: str) -> bool:
+        """删除会话"""
+        if session_id in self._sessions:
+            del self._sessions[session_id]
+            return True
+        return False
+    
+    def _cleanup_old_sessions(self):
+        """清理过期会话"""
+        now = datetime.utcnow()
+        expired = [
+            sid for sid, session in self._sessions.items()
+            if now - session.last_accessed > self._ttl
+        ]
+        for sid in expired:
+            del self._sessions[sid]
+        
+        # 如果超过最大会话数，删除最久未访问的
+        if len(self._sessions) > self._max_sessions:
+            sorted_sessions = sorted(
+                self._sessions.items(),
+                key=lambda x: x[1].last_accessed
+            )
+            for sid, _ in sorted_sessions[:-self._max_sessions]:
+                del self._sessions[sid]
+```
+
+### 2. Redis 存储（生产环境）
+
+```python
+import redis
+import json
+from typing import Optional, List
+from datetime import datetime
+
+class RedisSessionStore:
+    """基于 Redis 的会话存储"""
+    
+    def __init__(
+        self, 
+        redis_url: str = "redis://localhost:6379",
+        ttl_seconds: int = 86400  # 24小时
+    ):
+        self.redis_client = redis.from_url(redis_url)
+        self.ttl = ttl_seconds
+    
+    def create_session(self) -> str:
+        """创建新会话"""
+        session_id = str(uuid.uuid4())
+        session_data = {
+            "messages": [],
+            "created_at": datetime.utcnow().isoformat(),
+            "last_accessed": datetime.utcnow().isoformat(),
+            "metadata": {}
+        }
+        self.redis_client.setex(
+            f"session:{session_id}",
+            self.ttl,
+            json.dumps(session_data)
+        )
+        return session_id
+    
+    def get_session(self, session_id: str) -> Optional[dict]:
+        """获取会话"""
+        data = self.redis_client.get(f"session:{session_id}")
+        if data:
+            session = json.loads(data)
+            # 更新最后访问时间
+            session["last_accessed"] = datetime.utcnow().isoformat()
+            self.redis_client.setex(
+                f"session:{session_id}",
+                self.ttl,
+                json.dumps(session)
+            )
+            return session
+        return None
+    
+    def update_session(self, session_id: str, messages: List[dict]) -> bool:
+        """更新会话消息"""
+        session = self.get_session(session_id)
+        if session:
+            session["messages"] = messages
+            self.redis_client.setex(
+                f"session:{session_id}",
+                self.ttl,
+                json.dumps(session)
+            )
+            return True
+        return False
+```
+
+## API 端点设计
+
+### 扩展现有 API
+
+```python
+from fastapi import FastAPI, HTTPException, Depends, Header
+from typing import Optional
+
+# 会话存储实例
+session_store = InMemorySessionStore()  # 或 RedisSessionStore()
+
+class ChatRequest(BaseModel):
+    messages: Optional[List[ChatMessage]] = None  # 现在是可选的
+    session_id: Optional[str] = None  # 新增会话 ID
+    debug: Optional[bool] = False
+    deep_thinking_mode: Optional[bool] = False
+    search_before_planning: Optional[bool] = False
+
+@app.post("/api/chat/stream")
+async def chat_endpoint(request: ChatRequest, req: Request):
+    """支持会话的聊天端点"""
+    
+    # 处理会话逻辑
+    if request.session_id:
+        # 使用现有会话
+        session = session_store.get_session(request.session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="会话不存在")
+        
+        # 如果请求中有新消息，追加到会话历史
+        if request.messages:
+            session["messages"].extend([msg.dict() for msg in request.messages])
+            session_store.update_session(request.session_id, session["messages"])
+        
+        messages = session["messages"]
+    else:
+        # 创建新会话或使用提供的消息
+        if not request.messages:
+            raise HTTPException(status_code=400, detail="需要提供消息或会话 ID")
+        
+        session_id = session_store.create_session()
+        messages = [msg.dict() for msg in request.messages]
+        session_store.update_session(session_id, messages)
+    
+    # 执行工作流...
+    # 返回响应时包含会话 ID
+```
+
+### 会话管理端点
+
+```python
+@app.post("/api/sessions", response_model=SessionResponse)
+async def create_session():
+    """创建新会话"""
+    session_id = session_store.create_session()
+    return {"session_id": session_id, "created_at": datetime.utcnow()}
+
+@app.get("/api/sessions/{session_id}", response_model=SessionDetail)
+async def get_session(session_id: str):
+    """获取会话详情"""
+    session = session_store.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    return session
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """删除会话"""
+    if not session_store.delete_session(session_id):
+        raise HTTPException(status_code=404, detail="会话不存在")
+    return {"message": "会话已删除"}
+
+@app.post("/api/sessions/{session_id}/messages")
+async def append_message(session_id: str, message: ChatMessage):
+    """向会话追加消息"""
+    session = session_store.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="会话不存在")
+    
+    session["messages"].append(message.dict())
+    session_store.update_session(session_id, session["messages"])
+    return {"message": "消息已添加"}
+```
+
+## 客户端使用示例
+
+### JavaScript/TypeScript
+
+```typescript
+class ChatClient {
+    private sessionId: string | null = null;
+    private baseUrl = 'http://localhost:8000';
+    
+    async startNewSession(): Promise<string> {
+        const response = await fetch(`${this.baseUrl}/api/sessions`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        this.sessionId = data.session_id;
+        return this.sessionId;
+    }
+    
+    async sendMessage(content: string): Promise<EventSource> {
+        const body = {
+            session_id: this.sessionId,
+            messages: this.sessionId ? [{
+                role: 'user',
+                content: content
+            }] : null
+        };
+        
+        const eventSource = new EventSource(
+            `${this.baseUrl}/api/chat/stream`, 
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            }
+        );
+        
+        return eventSource;
+    }
+    
+    async getHistory(): Promise<any> {
+        if (!this.sessionId) throw new Error('No active session');
+        
+        const response = await fetch(
+            `${this.baseUrl}/api/sessions/${this.sessionId}`
+        );
+        return response.json();
+    }
+}
+```
+
+### Python 客户端
+
+```python
+import httpx
+import json
+from typing import Optional, AsyncIterator
+
+class ChatClient:
+    def __init__(self, base_url: str = "http://localhost:8000"):
+        self.base_url = base_url
+        self.session_id: Optional[str] = None
+        self.client = httpx.AsyncClient()
+    
+    async def start_new_session(self) -> str:
+        """开始新会话"""
+        response = await self.client.post(f"{self.base_url}/api/sessions")
+        data = response.json()
+        self.session_id = data["session_id"]
+        return self.session_id
+    
+    async def send_message(self, content: str) -> AsyncIterator[dict]:
+        """发送消息并流式接收响应"""
+        body = {
+            "session_id": self.session_id,
+            "messages": [{"role": "user", "content": content}]
+        }
+        
+        async with self.client.stream(
+            "POST",
+            f"{self.base_url}/api/chat/stream",
+            json=body
+        ) as response:
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    yield json.loads(line[6:])
+    
+    async def get_history(self) -> dict:
+        """获取会话历史"""
+        if not self.session_id:
+            raise ValueError("No active session")
+        
+        response = await self.client.get(
+            f"{self.base_url}/api/sessions/{self.session_id}"
+        )
+        return response.json()
+```
+
+## 安全考虑
+
+### 1. 会话认证
+
+```python
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
+
+security = HTTPBearer()
+
+async def verify_session_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> dict:
+    """验证会话令牌"""
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            SECRET_KEY,
+            algorithms=["HS256"]
+        )
+        return payload
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="无效的令牌")
+
+@app.post("/api/sessions", dependencies=[Depends(verify_session_token)])
+async def create_session(user_info: dict = Depends(verify_session_token)):
+    """创建带用户信息的会话"""
+    session_id = session_store.create_session()
+    # 关联用户信息
+    session = session_store.get_session(session_id)
+    session["metadata"]["user_id"] = user_info["user_id"]
+    return {"session_id": session_id}
+```
+
+### 2. 会话隔离
+
+```python
+class SessionStore:
+    def get_session(self, session_id: str, user_id: str) -> Optional[Session]:
+        """获取会话，验证用户权限"""
+        session = self._get_session(session_id)
+        if session and session.metadata.get("user_id") == user_id:
+            return session
+        return None
+```
+
+## 性能优化
+
+### 1. 消息截断
+
+```python
+def truncate_messages(messages: List[dict], max_tokens: int = 4000) -> List[dict]:
+    """截断过长的消息历史"""
+    # 保留系统消息和最近的消息
+    system_messages = [m for m in messages if m["role"] == "system"]
+    other_messages = [m for m in messages if m["role"] != "system"]
+    
+    # 从最新的消息开始，累计 token 数
+    truncated = []
+    token_count = 0
+    
+    for msg in reversed(other_messages):
+        msg_tokens = estimate_tokens(msg["content"])
+        if token_count + msg_tokens > max_tokens:
+            break
+        truncated.insert(0, msg)
+        token_count += msg_tokens
+    
+    return system_messages + truncated
+```
+
+### 2. 会话压缩
+
+```python
+async def compress_session(session_id: str):
+    """压缩会话历史"""
+    session = session_store.get_session(session_id)
+    if not session or len(session["messages"]) < 10:
+        return
+    
+    # 使用 LLM 总结对话历史
+    summary = await summarize_conversation(session["messages"][:-5])
+    
+    # 保留总结和最近的消息
+    compressed_messages = [
+        {"role": "system", "content": f"对话总结：{summary}"},
+        *session["messages"][-5:]
+    ]
+    
+    session_store.update_session(session_id, compressed_messages)
+```

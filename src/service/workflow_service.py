@@ -1,4 +1,5 @@
 import logging
+import json
 
 from src.config import TEAM_MEMBERS
 from src.graph import build_graph
@@ -60,6 +61,10 @@ async def run_agent_workflow(
     global is_handoff_case
     is_handoff_case = False
 
+    # 用于追踪当前计划步骤
+    current_plan_steps = []
+    current_step_index = -1
+
     # TODO: extract message content from object, specifically for on_chat_model_stream
     async for event in graph.astream_events(
         {
@@ -87,6 +92,105 @@ async def run_agent_workflow(
             else str(metadata["langgraph_step"])
         )
         run_id = "" if (event.get("run_id") is None) else str(event["run_id"])
+
+        # 调试：打印所有 on_chain_end 事件
+        if kind == "on_chain_end":
+            logger.debug(f"on_chain_end event - name: {name}, data keys: {list(data.keys()) if data else 'None'}")
+            if data and "output" in data:
+                output_type = type(data["output"])
+                logger.debug(f"  output type: {output_type}")
+                if isinstance(data["output"], dict):
+                    logger.debug(f"  output keys: {list(data['output'].keys())}")
+
+        # 检查是否有状态更新，获取计划步骤信息
+        if kind == "on_chain_end" and name == "planner":
+            logger.info(f"Planner chain ended, checking for plan in output")
+            # 尝试不同的方式获取 planner 的输出
+            if data:
+                logger.debug(f"Planner output data: {data}")
+                
+        # 另一种方式：监听 planner 的消息流
+        if kind == "on_chat_model_end" and node == "planner":
+            logger.info("Planner model ended, checking for plan")
+            # 这里可能包含了 planner 生成的内容
+            if data and "output" in data:
+                logger.debug(f"Planner model output: {data['output']}")
+                
+        # 监听消息流，查找包含计划的消息
+        if kind == "on_chat_model_stream" and node == "planner":
+            content = data.get("chunk", {}).content if data.get("chunk") else None
+            if content:
+                # 累积 planner 的输出
+                if not hasattr(run_agent_workflow, '_planner_buffer'):
+                    run_agent_workflow._planner_buffer = ""
+                run_agent_workflow._planner_buffer += content
+                
+        # 当 planner 结束时，解析累积的内容
+        if kind == "on_chain_end" and name == "planner":
+            if hasattr(run_agent_workflow, '_planner_buffer'):
+                try:
+                    plan_content = run_agent_workflow._planner_buffer
+                    logger.info(f"Accumulated planner content: {plan_content[:100]}...")
+                    if plan_content.startswith("```json"):
+                        plan_content = plan_content.removeprefix("```json").removesuffix("```")
+                    plan_data = json.loads(plan_content)
+                    if isinstance(plan_data, dict) and "steps" in plan_data:
+                        current_plan_steps = plan_data["steps"]
+                        current_step_index = 0
+                        logger.info(f"Plan parsed successfully, {len(current_plan_steps)} steps found")
+                        # 发送计划步骤信息
+                        plan_event = {
+                            "event": "plan_generated",
+                            "data": {
+                                "plan_steps": current_plan_steps,
+                                "total_steps": len(current_plan_steps),
+                            },
+                        }
+                        logger.info(f"Yielding plan_generated event")
+                        yield plan_event
+                    # 清空缓冲区
+                    run_agent_workflow._planner_buffer = ""
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse plan: {e}")
+                    run_agent_workflow._planner_buffer = ""
+
+        # 当 supervisor 开始执行时，检查它要调用哪个 agent
+        if kind == "on_chain_start" and name in TEAM_MEMBERS and current_plan_steps:
+            logger.info(f"Agent {name} started, checking for matching step")
+            # 查找当前 agent 对应的步骤
+            for i, step in enumerate(current_plan_steps):
+                if step.get("agent_name") == name and i >= current_step_index:
+                    current_step_index = i
+                    # 发送当前步骤信息
+                    step_event = {
+                        "event": "step_started",
+                        "data": {
+                            "step_index": i + 1,  # 1-based index for user
+                            "total_steps": len(current_plan_steps),
+                            "step_info": step,
+                        },
+                    }
+                    logger.info(f"Yielding step_started event for step {i+1}: {step_event}")
+                    yield step_event
+                    break
+
+        # 当 agent 完成执行时，发送步骤完成事件
+        if kind == "on_chain_end" and name in TEAM_MEMBERS and current_plan_steps:
+            logger.info(f"Agent {name} ended, checking for matching step")
+            # 查找当前 agent 对应的步骤
+            for i, step in enumerate(current_plan_steps):
+                if step.get("agent_name") == name:
+                    step_end_event = {
+                        "event": "step_end",
+                        "data": {
+                            "step_index": i + 1,
+                            "total_steps": len(current_plan_steps),
+                            "step_info": step,
+                        },
+                    }
+                    logger.info(f"Yielding step_end event for step {i+1}")
+                    yield step_end_event
+                    break
 
         if kind == "on_chain_start" and name in streaming_llm_agents:
             if name == "planner":
@@ -164,6 +268,9 @@ async def run_agent_workflow(
                                 "delta": {"content": content},
                             },
                         }
+                    else:
+                        # is_handoff_case is True, skip this message
+                        continue
                 else:
                     # For other agents, send the message directly
                     ydata = {

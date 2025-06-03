@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 浏览器配置规则
+
+## 浏览器工具配置
+
+项目使用 browser-use 库来控制浏览器交互。主要配置文件在 [src/tools/browser.py](mdc:src/tools/browser.py)。
+
+### 关键配置说明
+
+1. **独立浏览器实例**：使用 `BrowserConfig(headless=True)` 启动新的独立浏览器实例，避免与用户现有的Chrome冲突。
+
+2. **避免端口冲突**：不设置 `chrome_instance_path`、`cdp_url` 或 `wss_url` 参数，让browser-use自动启动新实例而不是连接现有的。
+
+3. **环境变量配置**：通过 [src/config/env.py](mdc:src/config/env.py) 中的 `CHROME_INSTANCE_PATH` 环境变量可选择性指定Chrome路径。
+
+### 常见问题解决
+
+- **错误：连接9222端口失败**：说明程序试图连接现有Chrome实例。解决方案是确保BrowserConfig不包含连接参数。
+- **ImportError: BrowserSession**：旧版browser-use使用 `Browser` + `BrowserConfig`，新版使用 `BrowserSession`。
+- **浏览器启动失败**：检查是否有Chrome实例占用，或使用无头模式 `headless=True`。
+
+### 版本兼容性
+
+当前项目使用的browser-use版本支持以下API：
+- `Browser` 和 `BrowserConfig` （当前使用）
+- `Agent` 作为主要控制器
+- `AgentHistoryList` 作为结果类型

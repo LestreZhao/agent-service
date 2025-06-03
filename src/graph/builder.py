@@ -6,7 +6,7 @@ from .nodes import (
     research_node,
     code_node,
     coordinator_node,
-    browser_node,
+    # browser_node,  # 临时禁用 browser 节点
     reporter_node,
     planner_node,
 )
@@ -21,6 +21,6 @@ def build_graph():
     builder.add_node("supervisor", supervisor_node)
     builder.add_node("researcher", research_node)
     builder.add_node("coder", code_node)
-    builder.add_node("browser", browser_node)
+    # builder.add_node("browser", browser_node)  # 临时禁用 browser 节点
     builder.add_node("reporter", reporter_node)
     return builder.compile()

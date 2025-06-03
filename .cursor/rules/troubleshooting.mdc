@@ -1,0 +1,116 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 故障排除指南
+
+## 浏览器相关问题
+
+### 问题：Chrome 9222端口连接失败
+**错误信息**：`connect ECONNREFUSED ::1:9222` 或 `To start chrome in Debug mode, you need to close all existing Chrome instances`
+
+**原因**：程序试图连接现有Chrome实例的调试端口
+
+**解决方案**：
+1. 确保 [src/tools/browser.py](mdc:src/tools/browser.py) 中的BrowserConfig不包含连接参数
+2. 使用 `headless=True` 启动独立实例
+3. 检查 `CHROME_INSTANCE_PATH` 环境变量配置
+
+### 问题：ImportError BrowserSession
+**错误信息**：`cannot import name 'BrowserSession' from 'browser_use'`
+
+**原因**：browser-use版本不兼容
+
+**解决方案**：
+- 旧版使用：`Browser` + `BrowserConfig`
+- 新版使用：`BrowserSession` + `BrowserProfile`
+- 检查当前版本：`.venv/bin/python -c "import browser_use; print(dir(browser_use))"`
+
+## LLM配置问题
+
+### 问题：API密钥错误
+**错误信息**：`Unauthorized` 或 `Invalid API key`
+
+**解决方案**：
+1. 检查 `.env` 文件中的API密钥配置
+2. 验证 [src/config/env.py](mdc:src/config/env.py) 加载逻辑
+3. 确认使用正确的模型名称
+
+### 问题：模型不支持
+**错误信息**：`Model not found` 或模型调用失败
+
+**解决方案**：
+1. 检查 [src/config/agents.py](mdc:src/config/agents.py) 中的模型映射
+2. 验证 [src/agents/llm.py](mdc:src/agents/llm.py) 中的LLM创建逻辑
+3. 确认base_url配置正确
+
+## 环境问题
+
+### 问题：Python可执行文件找不到
+**错误信息**：`zsh: no such file or directory: python`
+
+**解决方案**：
+```bash
+# 激活虚拟环境
+source .venv/bin/activate
+
+# 或直接使用虚拟环境中的Python
+.venv/bin/python main.py
+```
+
+### 问题：依赖包缺失
+**错误信息**：`ModuleNotFoundError`
+
+**解决方案**：
+```bash
+# 重新安装依赖
+uv sync
+
+# 检查特定包
+pip list | grep package_name
+```
+
+## 工作流问题
+
+### 问题：智能体无响应
+**可能原因**：
+1. API配额用尽
+2. 网络连接问题
+3. 提示词配置错误
+
+**诊断步骤**：
+1. 检查 [src/prompts/](mdc:src/prompts) 中的提示词模板
+2. 验证 [src/graph/nodes.py](mdc:src/graph/nodes.py) 中的节点配置
+3. 查看日志输出确定具体错误
+
+### 问题：工具调用失败
+**解决方案**：
+1. 检查 [src/tools/](mdc:src/tools) 中的工具实现
+2. 验证工具是否正确注册到智能体
+3. 确认工具的输入参数格式正确
+
+## 调试技巧
+
+### 启用详细日志
+```bash
+.venv/bin/python main.py --debug
+```
+
+### 检查配置加载
+```python
+from src.config import *
+print(f"BASIC_MODEL: {BASIC_MODEL}")
+print(f"VL_MODEL: {VL_MODEL}")
+```
+
+### 测试单个组件
+```python
+# 测试LLM
+from src.agents.llm import get_llm_by_type
+llm = get_llm_by_type("basic")
+
+# 测试工具
+from src.tools import browser_tool
+result = browser_tool._run("访问google.com")
+```

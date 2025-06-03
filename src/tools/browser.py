@@ -11,7 +11,7 @@ from src.config import CHROME_INSTANCE_PATH
 
 expected_browser = None
 
-# Use Chrome instance if specified
+# Use Chrome instance if specified with better configuration for Mac
 if CHROME_INSTANCE_PATH:
     expected_browser = Browser(
         config=BrowserConfig(chrome_instance_path=CHROME_INSTANCE_PATH)

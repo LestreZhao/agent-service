@@ -1,0 +1,497 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 性能优化指南
+
+## 异步编程优化
+
+### 并发处理
+
+本项目大量使用异步 I/O，特别是在 AI 模型调用和网络请求中：
+
+```python
+import asyncio
+from typing import List, Dict, Any
+import httpx
+
+async def batch_api_calls(urls: List[str], data: List[Dict]) -> List[Any]:
+    """批量并发 API 调用"""
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(30.0),
+        limits=httpx.Limits(max_connections=10)
+    ) as client:
+        
+        async def single_call(url: str, payload: Dict) -> Any:
+            try:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPError as e:
+                return {"error": str(e)}
+        
+        # 并发执行所有请求
+        tasks = [single_call(url, payload) for url, payload in zip(urls, data)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        return results
+```
+
+### 连接池管理
+
+```python
+import httpx
+from typing import Optional
+
+class APIClient:
+    """可复用的 HTTP 客户端"""
+    
+    def __init__(self, base_url: str, max_connections: int = 100):
+        self.base_url = base_url
+        self._client: Optional[httpx.AsyncClient] = None
+        self.max_connections = max_connections
+    
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=httpx.Timeout(30.0),
+            limits=httpx.Limits(
+                max_connections=self.max_connections,
+                max_keepalive_connections=20
+            )
+        )
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._client:
+            await self._client.aclose()
+```
+
+## 缓存策略
+
+### 内存缓存
+
+```python
+import asyncio
+from functools import wraps
+from typing import Dict, Any, Optional
+import time
+
+class MemoryCache:
+    """简单的内存缓存实现"""
+    
+    def __init__(self, ttl: int = 3600):
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._ttl = ttl
+    
+    def get(self, key: str) -> Optional[Any]:
+        if key in self._cache:
+            item = self._cache[key]
+            if time.time() - item["timestamp"] < self._ttl:
+                return item["value"]
+            else:
+                del self._cache[key]
+        return None
+    
+    def set(self, key: str, value: Any) -> None:
+        self._cache[key] = {
+            "value": value,
+            "timestamp": time.time()
+        }
+
+# 全局缓存实例
+cache = MemoryCache(ttl=1800)  # 30分钟
+
+def cached(ttl: int = 1800):
+    """缓存装饰器"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 创建缓存键
+            cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
+            
+            # 尝试从缓存获取
+            result = cache.get(cache_key)
+            if result is not None:
+                return result
+            
+            # 执行函数并缓存结果
+            result = await func(*args, **kwargs)
+            cache.set(cache_key, result)
+            return result
+        
+        return wrapper
+    return decorator
+
+@cached(ttl=600)  # 缓存10分钟
+async def expensive_api_call(query: str) -> Dict:
+    """昂贵的 API 调用"""
+    # 实际的 API 调用逻辑
+    pass
+```
+
+### 模型结果缓存
+
+```python
+import hashlib
+import json
+from pathlib import Path
+
+class ModelCache:
+    """AI 模型结果缓存"""
+    
+    def __init__(self, cache_dir: str = ".cache"):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(exist_ok=True)
+    
+    def _get_cache_key(self, prompt: str, model: str, **kwargs) -> str:
+        """生成缓存键"""
+        content = {
+            "prompt": prompt,
+            "model": model,
+            **kwargs
+        }
+        content_str = json.dumps(content, sort_keys=True)
+        return hashlib.md5(content_str.encode()).hexdigest()
+    
+    def get(self, prompt: str, model: str, **kwargs) -> Optional[str]:
+        """获取缓存的模型响应"""
+        cache_key = self._get_cache_key(prompt, model, **kwargs)
+        cache_file = self.cache_dir / f"{cache_key}.json"
+        
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # 检查缓存是否过期（24小时）
+                if time.time() - data["timestamp"] < 86400:
+                    return data["response"]
+            except (json.JSONDecodeError, KeyError):
+                cache_file.unlink()  # 删除损坏的缓存文件
+        
+        return None
+    
+    def set(self, prompt: str, model: str, response: str, **kwargs) -> None:
+        """缓存模型响应"""
+        cache_key = self._get_cache_key(prompt, model, **kwargs)
+        cache_file = self.cache_dir / f"{cache_key}.json"
+        
+        data = {
+            "prompt": prompt,
+            "model": model,
+            "response": response,
+            "timestamp": time.time(),
+            **kwargs
+        }
+        
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+model_cache = ModelCache()
+```
+
+## 数据处理优化
+
+### 流式处理
+
+```python
+import asyncio
+from typing import AsyncGenerator, Any
+
+async def stream_process_data(data_source: AsyncGenerator) -> AsyncGenerator[Any, None]:
+    """流式处理大量数据"""
+    batch_size = 100
+    batch = []
+    
+    async for item in data_source:
+        batch.append(item)
+        
+        if len(batch) >= batch_size:
+            # 处理批次数据
+            processed_batch = await process_batch(batch)
+            
+            # 逐个产出结果
+            for result in processed_batch:
+                yield result
+            
+            batch = []
+    
+    # 处理剩余数据
+    if batch:
+        processed_batch = await process_batch(batch)
+        for result in processed_batch:
+            yield result
+
+async def process_batch(items: List[Any]) -> List[Any]:
+    """批量处理数据项"""
+    # 并发处理批次中的所有项目
+    tasks = [process_single_item(item) for item in items]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # 过滤出成功的结果
+    return [r for r in results if not isinstance(r, Exception)]
+```
+
+### 内存管理
+
+```python
+import gc
+import psutil
+import logging
+from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
+
+class MemoryMonitor:
+    """内存使用监控"""
+    
+    def __init__(self, threshold_mb: int = 1000):
+        self.threshold_mb = threshold_mb
+    
+    def check_memory(self) -> None:
+        """检查内存使用情况"""
+        process = psutil.Process()
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        
+        if memory_mb > self.threshold_mb:
+            logger.warning(f"内存使用过高: {memory_mb:.1f}MB")
+            gc.collect()  # 强制垃圾回收
+
+def memory_efficient_operation(func: Callable) -> Callable:
+    """内存高效操作装饰器"""
+    monitor = MemoryMonitor()
+    
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        # 操作前检查内存
+        monitor.check_memory()
+        
+        try:
+            result = await func(*args, **kwargs)
+            return result
+        finally:
+            # 操作后清理
+            gc.collect()
+    
+    return wrapper
+```
+
+## 模型调用优化
+
+### 请求批处理
+
+```python
+import asyncio
+from dataclasses import dataclass
+from typing import List, Dict, Any
+import time
+
+@dataclass
+class ModelRequest:
+    prompt: str
+    model: str
+    temperature: float = 0.1
+    max_tokens: int = 1000
+
+class BatchModelCaller:
+    """批量模型调用优化器"""
+    
+    def __init__(self, batch_size: int = 5, wait_time: float = 0.1):
+        self.batch_size = batch_size
+        self.wait_time = wait_time
+        self._pending: List[ModelRequest] = []
+        self._processing = False
+    
+    async def call(self, request: ModelRequest) -> str:
+        """添加请求到批次队列"""
+        future = asyncio.Future()
+        self._pending.append((request, future))
+        
+        # 如果达到批次大小或没有正在处理的请求，立即处理
+        if len(self._pending) >= self.batch_size or not self._processing:
+            asyncio.create_task(self._process_batch())
+        
+        return await future
+    
+    async def _process_batch(self):
+        """处理批次请求"""
+        if self._processing:
+            return
+        
+        self._processing = True
+        
+        try:
+            # 等待更多请求聚集
+            await asyncio.sleep(self.wait_time)
+            
+            if not self._pending:
+                return
+            
+            # 取出当前批次
+            batch = self._pending[:self.batch_size]
+            self._pending = self._pending[self.batch_size:]
+            
+            # 并发处理批次中的所有请求
+            tasks = []
+            for request, future in batch:
+                task = asyncio.create_task(self._single_call(request))
+                tasks.append((task, future))
+            
+            # 等待所有请求完成
+            for task, future in tasks:
+                try:
+                    result = await task
+                    future.set_result(result)
+                except Exception as e:
+                    future.set_exception(e)
+        
+        finally:
+            self._processing = False
+            
+            # 如果还有待处理的请求，继续处理
+            if self._pending:
+                asyncio.create_task(self._process_batch())
+    
+    async def _single_call(self, request: ModelRequest) -> str:
+        """单个模型调用"""
+        # 实际的模型调用逻辑
+        pass
+
+# 全局批量调用器
+batch_caller = BatchModelCaller()
+```
+
+### 速率限制
+
+```python
+import asyncio
+import time
+from typing import Dict, Optional
+
+class RateLimiter:
+    """速率限制器"""
+    
+    def __init__(self, calls_per_minute: int = 60):
+        self.calls_per_minute = calls_per_minute
+        self.call_times: List[float] = []
+        self._lock = asyncio.Lock()
+    
+    async def acquire(self) -> None:
+        """获取调用许可"""
+        async with self._lock:
+            now = time.time()
+            
+            # 清理超过1分钟的记录
+            self.call_times = [t for t in self.call_times if now - t < 60]
+            
+            # 如果达到限制，等待
+            if len(self.call_times) >= self.calls_per_minute:
+                wait_time = 60 - (now - self.call_times[0])
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
+            
+            # 记录当前调用时间
+            self.call_times.append(now)
+
+# 不同服务的速率限制器
+rate_limiters: Dict[str, RateLimiter] = {
+    "openai": RateLimiter(calls_per_minute=60),
+    "deepseek": RateLimiter(calls_per_minute=100),
+}
+
+async def rate_limited_call(service: str, func, *args, **kwargs):
+    """带速率限制的函数调用"""
+    limiter = rate_limiters.get(service)
+    if limiter:
+        await limiter.acquire()
+    
+    return await func(*args, **kwargs)
+```
+
+## 监控和性能分析
+
+### 性能指标收集
+
+```python
+import time
+from contextlib import asynccontextmanager
+from typing import Dict, List
+from dataclasses import dataclass, field
+
+@dataclass
+class PerformanceMetrics:
+    total_requests: int = 0
+    total_duration: float = 0.0
+    error_count: int = 0
+    durations: List[float] = field(default_factory=list)
+    
+    @property
+    def avg_duration(self) -> float:
+        return self.total_duration / max(self.total_requests, 1)
+    
+    @property
+    def success_rate(self) -> float:
+        total = self.total_requests
+        return (total - self.error_count) / max(total, 1)
+
+class PerformanceTracker:
+    """性能跟踪器"""
+    
+    def __init__(self):
+        self.metrics: Dict[str, PerformanceMetrics] = {}
+    
+    @asynccontextmanager
+    async def track(self, operation: str):
+        """跟踪操作性能"""
+        start_time = time.time()
+        error_occurred = False
+        
+        try:
+            yield
+        except Exception as e:
+            error_occurred = True
+            raise
+        finally:
+            duration = time.time() - start_time
+            self._record_metrics(operation, duration, error_occurred)
+    
+    def _record_metrics(self, operation: str, duration: float, error: bool):
+        """记录性能指标"""
+        if operation not in self.metrics:
+            self.metrics[operation] = PerformanceMetrics()
+        
+        metrics = self.metrics[operation]
+        metrics.total_requests += 1
+        metrics.total_duration += duration
+        metrics.durations.append(duration)
+        
+        if error:
+            metrics.error_count += 1
+        
+        # 保持最近1000条记录
+        if len(metrics.durations) > 1000:
+            metrics.durations = metrics.durations[-1000:]
+    
+    def get_report(self) -> Dict[str, Dict[str, float]]:
+        """生成性能报告"""
+        report = {}
+        for operation, metrics in self.metrics.items():
+            report[operation] = {
+                "total_requests": metrics.total_requests,
+                "avg_duration": metrics.avg_duration,
+                "success_rate": metrics.success_rate,
+                "error_count": metrics.error_count
+            }
+        return report
+
+# 全局性能跟踪器
+performance_tracker = PerformanceTracker()
+
+# 使用示例
+async def tracked_operation():
+    async with performance_tracker.track("api_call"):
+        # 执行操作
+        pass
+```

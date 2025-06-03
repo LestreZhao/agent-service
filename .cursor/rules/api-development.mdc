@@ -1,0 +1,326 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API 开发规范
+
+## FastAPI 应用结构
+
+本项目使用 FastAPI 构建 Web API，主要入口文件是 [server.py](mdc:server.py)。
+
+### 路由组织
+
+API 路由应该在 [src/api/](mdc:src/api) 目录中按功能模块组织：
+
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional
+from pydantic import BaseModel
+
+router = APIRouter(prefix="/api/v1", tags=["agents"])
+
+class TaskRequest(BaseModel):
+    task: str
+    options: Optional[dict] = None
+
+class TaskResponse(BaseModel):
+    task_id: str
+    status: str
+    result: Optional[dict] = None
+
+@router.post("/tasks", response_model=TaskResponse)
+async def create_task(request: TaskRequest):
+    """创建新的任务"""
+    # 实现任务创建逻辑
+    pass
+```
+
+### 依赖注入
+
+使用 FastAPI 的依赖注入系统管理服务：
+
+```python
+from fastapi import Depends
+from src.service.workflow_service import WorkflowService
+
+async def get_workflow_service() -> WorkflowService:
+    """获取工作流服务实例"""
+    return WorkflowService()
+
+@router.post("/execute")
+async def execute_workflow(
+    task: str,
+    service: WorkflowService = Depends(get_workflow_service)
+):
+    """执行工作流"""
+    result = await service.execute(task)
+    return result
+```
+
+## 流式响应
+
+对于长时间运行的任务，使用 SSE (Server-Sent Events) 提供实时更新：
+
+```python
+from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
+import asyncio
+import json
+
+@router.get("/tasks/{task_id}/stream")
+async def stream_task_progress(task_id: str):
+    """流式返回任务进度"""
+    
+    async def event_generator():
+        # 模拟任务进度更新
+        for progress in range(0, 101, 10):
+            yield {
+                "event": "progress",
+                "data": json.dumps({
+                    "task_id": task_id,
+                    "progress": progress,
+                    "status": "running" if progress < 100 else "completed"
+                })
+            }
+            await asyncio.sleep(1)
+    
+    return EventSourceResponse(event_generator())
+```
+
+## 错误处理
+
+### 自定义异常处理器
+
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.exception_handlers import http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+app = FastAPI()
+
+class WorkflowException(Exception):
+    def __init__(self, message: str, status_code: int = 500):
+        self.message = message
+        self.status_code = status_code
+
+@app.exception_handler(WorkflowException)
+async def workflow_exception_handler(request, exc: WorkflowException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "workflow_error",
+            "message": exc.message,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+```
+
+### 标准错误响应
+
+```python
+from pydantic import BaseModel
+from datetime import datetime
+
+class ErrorResponse(BaseModel):
+    error: str
+    message: str
+    timestamp: datetime
+    path: Optional[str] = None
+
+@router.post("/tasks")
+async def create_task(request: TaskRequest):
+    try:
+        # 业务逻辑
+        pass
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=ErrorResponse(
+                error="validation_error",
+                message=str(e),
+                timestamp=datetime.utcnow()
+            ).dict()
+        )
+```
+
+## 请求验证
+
+### 输入数据验证
+
+使用 Pydantic 模型进行严格的数据验证：
+
+```python
+from pydantic import BaseModel, Field, validator
+from typing import List, Optional
+
+class TaskConfig(BaseModel):
+    max_iterations: int = Field(default=5, ge=1, le=100)
+    timeout_seconds: int = Field(default=300, ge=30, le=3600)
+    model_type: str = Field(default="openai", regex="^(openai|deepseek)$")
+    
+    @validator('max_iterations')
+    def validate_iterations(cls, v):
+        if v <= 0:
+            raise ValueError('最大迭代次数必须大于 0')
+        return v
+
+class TaskRequest(BaseModel):
+    task: str = Field(..., min_length=1, max_length=1000)
+    config: Optional[TaskConfig] = None
+    
+    @validator('task')
+    def validate_task(cls, v):
+        if not v.strip():
+            raise ValueError('任务描述不能为空')
+        return v.strip()
+```
+
+## 认证和授权
+
+### API 密钥认证
+
+```python
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
+
+security = HTTPBearer()
+
+async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """验证 API 密钥"""
+    expected_key = os.getenv("API_KEY")
+    if not expected_key:
+        raise HTTPException(status_code=500, detail="服务器配置错误")
+    
+    if credentials.credentials != expected_key:
+        raise HTTPException(status_code=401, detail="无效的 API 密钥")
+    
+    return credentials.credentials
+
+@router.post("/protected-endpoint")
+async def protected_endpoint(
+    data: dict,
+    api_key: str = Depends(verify_api_key)
+):
+    """需要认证的端点"""
+    pass
+```
+
+## 文档和元数据
+
+### OpenAPI 配置
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI(
+    title="LangManus API",
+    description="AI 自动化框架 API",
+    version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "tasks",
+            "description": "任务管理相关接口",
+        },
+        {
+            "name": "agents",
+            "description": "AI 代理相关接口",
+        }
+    ]
+)
+```
+
+### 响应示例
+
+为 API 端点添加响应示例：
+
+```python
+@router.post(
+    "/tasks",
+    response_model=TaskResponse,
+    responses={
+        200: {
+            "description": "任务创建成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "task_id": "task_123",
+                        "status": "pending",
+                        "result": None
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "请求参数错误",
+            "model": ErrorResponse
+        }
+    }
+)
+async def create_task(request: TaskRequest):
+    """创建新的任务
+    
+    创建一个新的 AI 任务，返回任务 ID 用于后续查询。
+    """
+    pass
+```
+
+## 中间件
+
+### 请求日志中间件
+
+```python
+import time
+import logging
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+
+logger = logging.getLogger(__name__)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+        
+        # 记录请求信息
+        logger.info(f"请求开始: {request.method} {request.url}")
+        
+        # 处理请求
+        response = await call_next(request)
+        
+        # 计算处理时间
+        process_time = time.time() - start_time
+        logger.info(f"请求完成: {response.status_code} - {process_time:.2f}s")
+        
+        return response
+
+app.add_middleware(LoggingMiddleware)
+```
+
+## 配置管理
+
+### 环境特定配置
+
+```python
+from pydantic import BaseSettings
+from functools import lru_cache
+
+class APISettings(BaseSettings):
+    host: str = "0.0.0.0"
+    port: int = 8000
+    debug: bool = False
+    cors_origins: List[str] = ["*"]
+    max_request_size: int = 10 * 1024 * 1024  # 10MB
+    
+    class Config:
+        env_prefix = "API_"
+        env_file = ".env"
+
+@lru_cache()
+def get_settings():
+    return APISettings()
+
+settings = get_settings()
+```
