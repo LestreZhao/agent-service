@@ -9,6 +9,7 @@ from .nodes import (
     # browser_node,  # 临时禁用 browser 节点
     reporter_node,
     planner_node,
+    db_analyst_node,
 )
 
 
@@ -23,4 +24,5 @@ def build_graph():
     builder.add_node("coder", code_node)
     # builder.add_node("browser", browser_node)  # 临时禁用 browser 节点
     builder.add_node("reporter", reporter_node)
+    builder.add_node("db_analyst", db_analyst_node)
     return builder.compile()

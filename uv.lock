@@ -407,6 +407,12 @@ wheels = [
 ]
 
 [[package]]
+name = "cx-oracle"
+version = "8.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/16/13c265afc984796fe38ee928733569b599cfd657245ddd1afad238b66656/cx_Oracle-8.3.0.tar.gz", hash = "sha256:3b2d215af4441463c97ea469b9cc307460739f89fdfa8ea222ea3518f1a424d9", size = 363886, upload-time = "2021-11-04T22:08:34.141Z" }
+
+[[package]]
 name = "dataclasses-json"
 version = "0.6.7"
 source = { registry = "https://pypi.org/simple" }
@@ -906,6 +912,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "browser-use" },
+    { name = "cx-oracle" },
     { name = "fastapi" },
     { name = "firecrawl-py" },
     { name = "httpx" },
@@ -938,6 +945,7 @@ test = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.2.0" },
     { name = "browser-use", specifier = ">=0.1.0" },
+    { name = "cx-oracle", specifier = ">=8.3.0" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "firecrawl-py", specifier = ">=1.6.0" },
     { name = "httpx", specifier = ">=0.28.1" },

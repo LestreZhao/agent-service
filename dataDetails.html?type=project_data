@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1300">
+    <meta name="viewport" content="width=device-width, initial-scale=0, maximum-scale=0, user-scalable=yes,shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="format-detection" content="telephone=no,email=no,address=no">
+    <title>国家人口健康科学数据中心</title>
+    <link rel="stylesheet" href="/static/layui/css/layui.css">
+    <!-- Link Swiper's CSS -->
+    <link rel="stylesheet" href="/resources/css/base.css">
+    <script src="/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/layui/layui.all.js"></script>
+</head>
+<style>
+    .maskbg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, .6);
+        z-index: 9999;
+    }
+
+    .login_tips {
+        width: 610px;
+        height: 558px;
+        background-color: #ffffff;
+        border-radius: 10px;
+        border-top: 10px solid #27c4e5;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-left: -305px;
+        margin-top: -279px;
+    }
+
+    .login_tips_close {
+        text-align: right;
+        margin: 15px;
+    }
+
+    .login_tips .signin_left {
+        float: initial;
+        height: auto;
+        margin: 0 auto;
+    }
+
+    .signin_left {
+        width: 500px;
+        height: 565px;
+        background-color: #ffffff;
+    }
+
+    .signin_left > h4 {
+        font-size: 24px;
+        font-weight: normal;
+        color: #27c4e5;
+        text-align: center;
+    }
+
+    .signin_tips {
+        width: 286px;
+        margin: 25px auto;
+        position: relative;
+        border-radius: 10px;
+        background-color: #fdf6ec;
+        padding: 11px 64px 11px 100px;
+    }
+
+    .signin_tips>i.layui-icon {
+        top: 16px;
+        left: 80px;
+        color: #e6a23c;
+        position: absolute;
+    }
+
+    .signin_tips>p {
+        color: #e18f00;
+        line-height: 24px;
+    }
+
+    .signin_input {
+        width: 290px;
+        margin: 0 auto;
+    }
+
+    .signin_input .signin_in1 {
+        height: 43px;
+        line-height: 43px;
+        border-radius: 22px;
+        border: solid 1px #27c4e5;
+        margin-bottom: 30px;
+    }
+
+    .signin_input .signin_in1 > u {
+        display: inline-block;
+        vertical-align: middle;
+        margin: -8px 5px 0 24px;
+    }
+
+    .signin_input .signin_in1 input {
+        width: 220px;
+        margin: 0px;
+        padding: 0px;
+        height: 40px;
+        border: none;
+    }
+
+    .signin_verification input {
+        width: 176px !important;
+        margin-left: 18px !important;
+    }
+
+    .signin_verification a.verifyings {
+        width: 89px;
+        font-size: 14px;
+        color: #27c4e5;
+        display: inline-block;
+        line-height: 30px;
+        text-align: center;
+    }
+
+    .wangjipwd {
+        margin-top: -17px;
+    }
+
+    .wangjipwd a {
+        font-size: 14px;
+        color: #27c4e5;
+        text-decoration: underline;
+    }
+
+    .signin_btn_a {
+        margin-top: 25px;
+    }
+
+    .signin_btn_a a {
+        display: block;
+        height: 43px;
+        line-height: 43px;
+        background-image: linear-gradient(90deg,
+        #27c4e5 0%,
+        #27c4e5 100%),
+        linear-gradient(
+                #27c4e5,
+                #27c4e5);
+        background-blend-mode: normal,
+        normal;
+        border-radius: 22px;
+        font-size: 16px;
+        text-align: center;
+        color: #ffffff;
+    }
+
+    select.form_colulogole {
+        padding-right: 0;
+    }
+    .tongzhi u {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        background: url(/resources/img/tongzhi.png)no-repeat center;
+        vertical-align: middle;
+        margin-right: 2px;
+    }
+    .tiaoshu {
+        min-width: 20px;
+        height: 14px;
+        display: inline-block;
+        background: #f39c12;
+        margin-top: -5px;
+        margin-left: -10px;
+        text-align: center;
+        line-height: 14px;
+        font-size: 12px;
+    }
+
+    .dropdown-menu{
+        right: auto !important;
+        float: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        top: auto !important;
+        left: auto !important;
+        z-index: 99999 !important;
+        position: fixed !important;
+        min-width: 350px !important;
+        border-radius: 3px !important;
+        background: #ffffff !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, .175) !important;
+    }
+
+    .dropdown-menu li{
+        padding: 0 10px;
+    }
+
+    .xxtx_title {
+        border-bottom: 1px solid #d6d6d6;
+    }
+
+    .dataList a{
+        color: #ff6a56 !important;
+    }
+
+    .newsbtn {
+        text-align: center;
+        background: #f5f5f5;
+    }
+
+    .newsbtn a {
+        color: #666666 !important;
+    }
+
+    .header_right_item {
+        float: left;
+        margin: 0 0 0 10px;
+    }
+
+    .language_item_en,
+    .language_switch_cn {
+        display: none;
+    }
+
+    .header_item_label {
+        float: left;
+        font-size: 12px;
+    }
+
+    .header_item_content {
+        overflow: hidden;
+        font-size: 12px;
+        width: 88px;
+    }
+
+    .visitor_volume {
+        color: #f20000;
+    }
+
+    .detailsmenu_en ul li a {
+        padding: 0 14px;
+    }
+</style>
+<body>
+<div class="container" style="min-width:1200px;">
+    <div class="headertop">
+        <div class="section clearfix">
+            <a href="/index.html" style="cursor: auto;" class="logo"></a>
+            <a href="/index.html" style="cursor: auto;" class="logo_1"></a>
+            <div class="functionbtn">
+                <div class="header_right_item">
+
+                    <div class="">
+                        <span class="user_login"><a href="/phda/login.html?v=2">登录</a></span>
+                        <u class="posit_heider"></u>
+                        <span class="user_login"><a href="/phda/register.html?v=2">注册</a></span>
+                    </div>
+                </div>
+
+                <div class="header_right_item">
+
+                    <div class="">
+                        <span class="data_jaohui"><u></u><a href="javascript:;" id="0" class="js_publishdata">数据汇交</a></span>
+                    </div>
+                </div>
+
+                <div class="header_right_item">
+
+                    <div class="">
+                        <span class="user_help"><u></u><a href="/phda/support.html?type=guide01">用户帮助</a></span>
+                    </div>
+                </div>
+
+                <div class="header_right_item">
+
+                    <div class="">
+                        <div class="data_down">
+                            <span class="downsapn"><a href="javascript:void(0);">工作人员入口</a><u></u></span>
+                            <div class="downUl">
+                                <ul>
+                                    <li><a href="http://ncmi.imicams.ac.cn" target="_blank">协同办公系统</a></li>
+                                    <li><a href="https://manage.ncmi.cn" target="_blank">后台管理系统</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header_right_item">
+                    <div class="">
+                        <span class="about_us"><u></u><a href="/phda/support.html?type=aboutus">关于我们</a></span>
+                    </div>
+                </div>
+
+                <!-- <div class="header_right_item ">
+                    <span class="about_us"><u></u><a href="/phda/aboutUs.html">English</a></span>
+                </div> -->
+                <!-- <a href="javascript:void(0);" onclick="isLogin()" class="btn_normal">数据订阅</a> -->
+
+                <div class="header_right_item">
+                    <div class="">
+                        <label class="header_item_label">访问量：</label>
+                        <div class="header_item_content">
+                            <span class="visitor_volume"></span>
+                            <span>次</span>
+                        </div>
+                    </div>
+                </div>
+                <!--<div class="header_right_item" id="switchDivLayout" >
+                    <a href="javascript:;" class="switchDivLayout" type="en" data-val="En">EN</a>
+                </div>-->
+
+            </div>
+        </div>
+        <div class="logotitle logodetails" id="logodetailsid">
+            <div class="section">
+                <a href="/index.html" class="biglogo"></a>
+                <div class="searchdetails ">
+                    <div class="searchinput">
+                        <p class="searmenu js_searmenu">
+                            <a href="javascript:void(0)" onclick="todata()" class="dataseachs active">科学数据</a>
+                            <a href="javascript:void(0)" class="shareDocument" onclick="towendang()">共享文档</a>
+                            <a href="javascript:void(0)" class="workDynamics" onclick="doSomething()">工作动态</a>
+                            <input type="hidden" id="def" value="0">
+                        </p>
+                        <div class="inputbtn clearfix">
+                            <div class="leftinputbtn" id="toSearch1">
+                                <input type="hidden" id="field" value="">
+                                <!--<select id="generalSearchField">
+                                </select>-->
+                                <form class="layui-form" action="">
+                                    <div class="layui-form-item">
+                                        <div class="layui-input-inline">
+                                            <select name="interest" lay-filter="aihao" id="generalSearchField">
+                                            </select>
+                                        </div>
+                                    </div>
+                                </form>
+                                <input type="text" name="" id="keyword" value="" onmousedown="changeDef(1)"
+                                       onblur="changeDef(0)" autocomplete="off" >
+                                <a href="#" onclick="toSearch();">搜&nbsp;索</a>
+                            </div>
+                            <div class="leftinputbtn" id="toSearch2" style="display:none;">
+                                <input type="hidden" id="type" value="">
+                                <input type="text" name="" id="keyword2" value="" style="width: 80%"
+                                       onmousedown="changeDef(1)" onblur="changeDef(0)">
+                                <a href="#" onclick="toSearch2();">搜&nbsp;索</a>
+                            </div>
+                            <div class="fontbtnright">
+                                <a href="/advancedSearch/advanced_search.html">高级检索</a>
+                                <a href="/dataSearch/certificate_search.html">证书与凭证</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detailsmenu " id="detailsmenuid">
+        <div class="section">
+            <ul class="clearfix js_hxmenu">
+                <li>
+                    <a href="/index.html" style="cursor: pointer;" class="">首页</a>
+                </li>
+                <li>
+                    <a href="/phda/browse.html?type=1"
+                       class="data_search">数据浏览</a>
+                </li>
+                <li>
+                    <a href="/phda/service.html" class="toDataService">数据服务</a>
+                </li>
+                <li>
+                    <a href="javascript:void(0);" id="0" class="js_publishdata publishdata">数据汇交</a>
+                </li>
+                <!--<li>
+                    <a href="/phda/statistics.html" target="_blank"
+                       class="resourceStatistics">资源统计</a>
+                </li>-->
+                <li>
+                    <a href="/phda/serviceInfluence.html"
+                       class="toServiceInfluence">服务影响力</a>
+                </li>
+                <!--<li>-->
+                <!--<a href="/index/expertList.html?active=expertList" class="expertList">数据专家</a>-->
+                <!--</li>-->
+                <li>
+                    <a href="/phda/documents.html" class="shareDocument">共享文档</a>
+                </li>
+                <li>
+                    <a href="/phda/shareCup.html" class="share">共享杯竞赛</a>
+                </li>
+                <li>
+                    <a href="/phda/news.html" class="workDynamics">工作动态</a>
+                </li>
+                <li>
+                    <a href="/phda/video_list.html" class="collaborations">培训课堂</a>
+                </li>
+                <!--<li>
+                    <a href="/phda/tools.html" class="aboutus">工具服务</a>
+                </li>
+                <li>
+                    <a href="/aboutus.html?type=aboutus" class="aboutus">关于我们</a>
+                </li>-->
+            </ul>
+        </div>
+    </div>
+    
+<style>
+    .data-code-g-mn{
+        height: 586px;
+    }
+
+    .data-code-logintips {
+        box-sizing: border-box;
+        /* position: fixed; */
+        width: 388px;
+        /* height: 450px; */
+        background-color: rgba(255, 255, 255, 0.46);
+        z-index: 100;
+        padding: 10px;
+        float: right;
+        margin-top: 160px;
+        margin-right: 40%;
+    }
+
+    .spinner {
+        margin: 100px auto;
+        width: 50px;
+        height: 60px;
+        text-align: center;
+        font-size: 10px;
+    }
+
+    .spinner > div {
+        background-color: #67CF22;
+        height: 100%;
+        width: 6px;
+        display: inline-block;
+
+        -webkit-animation: stretchdelay 1.2s infinite ease-in-out;
+        animation: stretchdelay 1.2s infinite ease-in-out;
+    }
+
+    .spinner .rect2 {
+        -webkit-animation-delay: -1.1s;
+        animation-delay: -1.1s;
+    }
+
+    .spinner .rect3 {
+        -webkit-animation-delay: -1.0s;
+        animation-delay: -1.0s;
+    }
+
+    .spinner .rect4 {
+        -webkit-animation-delay: -0.9s;
+        animation-delay: -0.9s;
+    }
+
+    .spinner .rect5 {
+        -webkit-animation-delay: -0.8s;
+        animation-delay: -0.8s;
+    }
+
+    @-webkit-keyframes stretchdelay {
+        0%, 40%, 100% { -webkit-transform: scaleY(0.4) }
+        20% { -webkit-transform: scaleY(1.0) }
+    }
+
+    @keyframes stretchdelay {
+        0%, 40%, 100% {
+            transform: scaleY(0.4);
+            -webkit-transform: scaleY(0.4);
+        }  20% {
+               transform: scaleY(1.0);
+               -webkit-transform: scaleY(1.0);
+           }
+    }
+</style>
+<div class="spinner">
+    <div class="rect1"></div>
+    <div class="rect2"></div>
+    <div class="rect3"></div>
+    <div class="rect4"></div>
+    <div class="rect5"></div>
+</div>
+<script type="text/javascript" src="../resources/lib/jquery.js"></script>
+<script type="text/javascript" src="/js/jsencrypt.js"></script>
+<script type="text/javascript" src="/modules/datasearch/js/data_verification_password.js"></script>
+<script type="text/javascript">
+
+</script>
+
+</div>
+<!--登录弹窗-->
+<!--登录弹窗-->
+<script type="text/javascript" src="/js/jsencrypt.js?v=2"></script>
+<form>
+    <style>
+
+    </style>
+<div class="maskbg" style="display:none;">
+    <div class="login_tips">
+        <p class="login_tips_close"><a href="javascript:void(0);"><img onclick="maskbg_hide()" src="/resources/img/close.png"/></a></p>
+        <div class="clearfix">
+            <div class="signin_left">
+                <h4>登 录</h4>
+                <!--<div class="signin_tips">
+                    <i class="layui-icon layui-icon-about"></i>
+                    <p>为保障您的正常登录，第一次操作时请您清理缓存后再进行登录字段填写。</p>
+                </div>-->
+                <div class="signin_input">
+                    <div class="signin_in1">
+                        <u><img src="/resources/img/username.png"/></u>
+                        <input type="input" id="username" placeholder="请输入手机号/邮箱/用户名"/>
+                    </div>
+                    <div class="signin_in1">
+                        <u><img src="/resources/img/userpwd.png"/></u>
+                        <input type="password" id="password" placeholder="请输入密码" autocomplete="off" />
+                    </div>
+                    <div class="signin_in1 signin_verification">
+                        <!--<u><img src="/resources/img/userpwd.png"/></u>-->
+                        <input type="text" style="width:146px " id="message_code" placeholder="请填写短信或邮箱验证码" name="" autocomplete="off">
+                        <a href="javascript:;" id="AccountNumber_li_yantelephonecod"  class="verifyings" onclick="sendAuthenticationCodess(this.id)">获取验证码</a>
+                    </div>
+                    <p class="wangjipwd">
+                        <a href="/user/recovery_password.html?v=2">忘记密码</a>
+                        <!--<a title="功能暂未开放" style="cursor: not-allowed">忘记密码</a>-->
+                        <a href="/phda/register.html?v=2" style="float: right">立即注册</a>
+                        <!--<a title="功能暂未开放" style="float: right;cursor: not-allowed">立即注册</a>-->
+                    </p>
+                    <div style="display: none;" id="kaptchaShow">
+                        <input name="kaptcha" type="text" id="kaptcha" class="form-control" style="width: 85px;float: left;height: 31px;margin-right: 20px;"/>
+                        <img src="/kaptcha.jpg" id="kaptchaImage" style="width: 90px;"/>
+                        <a href="javascript:;" onclick="longchangeCode()" style="font-size: 10px;">看不清?换一张</a>
+                    </div>
+                    <div class="prohibitBox1" style="display: none;right: 120px;top: 85px;position: initial;color:#ff0000;padding-top: 10px;font-size: 14px;">
+                        <p><img src="/resources/img/redProhibit.png" style="display: inline-block; vertical-align: middle; margin-top: -4px;"><span style="margin-left: 5px;" id="longcount"></span>次失败以后，账号将被锁定</p>
+                    </div>
+                    <div class="prohibitBox2" style="display: none;right: 120px;top: 85px;position: initial;color:#ff0000;padding-top: 10px;font-size: 14px;">
+                        <p><img src="/resources/img/redProhibit.png"><span style="margin-left: 5px;">账号已被锁定，请联系管理员</span></p>
+                    </div>
+                    <div class="signin_btn_a">
+                        <a href="javascript:login2();" >登 录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</form>
+<script>
+    $(window).keydown(function(event) {  //键盘敲击事件
+        if (event.keyCode == 13) {
+            var flag = $(".maskbg").is(":visible");
+            if(flag){
+                login2();
+            }
+        }
+    });
+    function login2() {
+        var userName = $("#username").val();
+        if(userName == ''){
+            layer.msg("请输入用户名。");
+            return;
+        }
+        var userPass = $("#password").val();
+        if(userPass == ''){
+            layer.msg("请输入密码。");
+            return;
+        }
+        var messageCode = $("#message_code").val();
+        var messageCodeText=$.trim(messageCode); //
+        if(messageCodeText.length<1){
+            layer.msg("验证码不能为空！");
+            return null;
+        }
+        var encrypt = new JSEncrypt();
+        var encrypted_name = encrypt.encrypt(userName);
+        var encrypted_userPass = encrypt.encrypt(userPass);
+        var flag = $("#kaptchaShow").is(':hidden');
+        if(!flag){
+            var kaptcha = $.trim($("#kaptcha").val());
+            if(kaptcha == ''){
+                layer.msg("请输入验证码。");
+                return;
+            }
+        }
+        $.ajax({
+            type : "post",
+            url : "/userlogin.do",
+            data : {
+                "username" : encrypted_name,
+                "password" : encrypted_userPass,
+                "kaptcha"  : kaptcha,
+                "code" : messageCodeText
+            },
+            dataType : "json",
+            async : false,
+            success : function(res) {
+                data = res.data;
+                layer.closeAll('loading');
+                if ("ok"==data.tishi) {
+                    $(".unlogin").hide();
+                    $(".login").show();
+                    window.location.href = "/index.html";
+                }else if("hezuo" == data.tishi){
+                    layer.msg("该机构已升级为合作机构，请后台登录！");
+                    $(".prohibitBox2").find("span").html("该机构已升级为合作机构，请后台登录");
+                    $(".prohibitBox2").show();
+                } else if ("nouser" == data.tishi) {
+                    layer.msg("用户名不存在！");
+                    $(".prohibitBox2").find("span").html("用户名不存在");
+                    $(".prohibitBox2").show();
+                } else if ("weijihuo" == data.tishi) {
+                    layer.msg("该用户未激活，请去注册邮箱激活！");
+                    $(".prohibitBox2").find("span").html("该用户未激活，请去注册邮箱激活！<br><a onclick='jumpEmail(\""+data.email+"\")' style='color: #0381bb;'>去邮箱</a>").css("font-size","16px");
+                    $(".prohibitBox2").show();
+                } else if ("locking" == data.tishi) {
+                    layer.msg("该用户已被锁定，请联系管理员！",{time:300000});
+                    $(".prohibitBox2").find("span").html("该用户已被锁定，请联系管理员");
+                    $(".prohibitBox2").show();
+                } else if ("no"==data.tishi||"coreerro" == data.tishi) {
+                    if("no"==data.tishi){
+                        layer.msg("请检查账号、密码是否正确！");
+                    }else{
+                        layer.msg("手机或邮箱验证码错误！");
+                    }
+                    $("#kaptcha").val("");
+                    if(data.kaptchaTime <3) {
+                        $("#kaptchaShow").hide();
+                        $(".prohibitBox1").hide();
+                    }else if(data.kaptchaTime >=3 && data.kaptchaTime <6){
+                        $("#kaptchaShow").show();
+                        $("#count").html(6 - (data.kaptchaTime < 6 ? data.kaptchaTime : 6));
+                        $(".prohibitBox1").show();
+                        changeCode();
+                    }else{
+                        $(".prohibitBox1").hide();//连续输错6次密码锁定账号
+                        $(".prohibitBox2").find("span").html("该用户已被锁定，请联系管理员");
+                        $(".prohibitBox2").show();
+                        changeCode();
+                    }
+                } else if ("kaptcha"==data.tishi) {
+                    layer.msg("验证码有误！请重新输入！");
+                    $("#kaptchaShow").show();
+                    $("#kaptcha").val("");
+                    changeCode();
+                } else if ("refuse" == data.tishi) {
+                    if(data.type == '1'){//个人
+                        layer.msg("该账号已被禁用，请联系管理员！");
+                    }else{
+                        layer.msg("该账号已被拒绝，请联系管理员！");
+                    }
+                } else if ("untreated" == data.tishi) {
+                    layer.msg("该账号等待处理，请联系管理员！");
+                }else if ("kong" == data.tishi) {
+                    layer.msg("登陆信息为空！");
+                }else if ("recovery" == data.tishi) {
+                    layer.msg("账号密码已过有效期，请您先修改密码再登录！",{time:2000},function(){
+                        window.location.href = "/user/recovery_password.html";
+                    });
+                }
+            }
+        });
+
+
+    }
+    function sendAuthenticationCodess(id){
+        var userName = $("#username").val();
+        if(userName == ''){
+            layer.msg("请输入用户名。");
+            return;
+        }
+        var userPass = $("#password").val();
+        if(userPass == ''){
+            layer.msg("请输入密码。");
+            return;
+        }
+
+        var encrypt = new JSEncrypt();
+        var encrypted_name = encrypt.encrypt(userName);
+        var encrypted_userPass = encrypt.encrypt(userPass);
+        $.ajax({
+            type : "post",
+            url : "/user/sendMessagerLogin.do",
+            data : {
+                "username" : encrypted_name,
+                "password": encrypted_userPass
+
+            },
+            dataType : "json",
+            async : false,
+            success : function(data) {
+                countdowns = 60;
+                circulateCode2s(id);
+                if (data.status==200) {
+                    layer.msg(data.data);
+                }else if(data.status==305){
+                    layer.msg("账号密码已过有效期，请您先修改密码再登录！",{time:2000},function(){
+                        window.location.href = "/user/recovery_password.html";
+                    });
+                }else{
+                    layer.msg(data.msg);
+                }
+            },
+            error : function(data) {
+                layer.msg("请求失败");
+            }
+        });
+    }
+    var countdowns=0;
+    function circulateCode2s(id) {
+        if (countdowns == 0) {
+            $("#" + id).html("获取验证码");
+            $("#" + id).attr("onclick", "sendAuthenticationCodess(" + id + ")");
+        } else {
+            $("#" + id).html("重新发送(" + countdowns + ")");
+            $("#" + id).removeAttr("onclick");
+            countdowns--;
+            setTimeout(function () {
+                circulateCode2s(id)
+            }, 1000);
+        }
+    }
+    function longchangeCode() {  //刷新
+        $('#kaptchaImage').hide().attr('src', '/kaptcha.jpg?' + Math.floor(Math.random()*100) ).fadeIn();
+    }
+</script><script type="text/javascript" src="/static/layui/layui.js"></script>
+<script type="text/javascript">
+	$('.language_switch_btn').off('click').on('click', function() {
+		var _this = $(this);
+		var _type = _this.attr('type');
+	
+		if (_type === 'en') {
+	        $('.language_item_cn').hide();
+		    $('.language_item_en').show();
+            $("body").addClass('body_language_en');
+		} else if (_type === 'cn') {
+	        $('.language_item_en').hide();
+	        $('.language_item_cn').show();
+            $("body").removeClass('body_language_en')
+		}
+	
+	    _this.hide().siblings().show();
+	})
+    function showtongzhi(){
+        $('.dropdown-menu').show();
+    }
+    document.onclick=function(event){
+        event=event||window.event;
+        $('.dropdown-menu').hide();
+        event.stopPropagation();
+    }
+    $(function () {
+        layui.use(['layer', 'laypage'], function () {
+            var layer = layui.layer;
+            var laypage = layui.laypage;
+        });
+    })
+
+    function maskbg_hide() {
+        $(".maskbg").hide();
+    }
+</script>
+<!--<script type="text/javascript" src="/static/layer-v2.0/layer/layer.js"></script>-->
+<script type="text/javascript" src="/static/laypage/laypage.js?v=1.3"></script>
+<script type="text/javascript" src="/inc/js/layout.js"></script>
+<script type="text/javascript" src="/inc/js/public.js"></script>
+<script>
+    $(function () {
+        if(''!=null&&''!=''){
+            tongzhi();
+        }
+        var active = GetQueryString('active');
+        $('.' + active).parent(".js_searmenu").find("a").removeClass("active");
+        if (active == 'shareDocument') {
+            $("#type").val("1");
+            $("#toSearch2").show();
+            $("#toSearch1").hide();
+        } else if (active == 'workDynamics') {
+            $("#type").val("2");
+            $("#toSearch2").show();
+            $("#toSearch1").hide();
+        }
+        $("." + active).addClass("active");
+
+        // 检索
+        $(document).on('click', '.js_searmenu a', function () {
+            $(this).addClass('active').siblings('a').removeClass('active');
+        });
+        // 横向菜单
+        $(document).on('click', '.js_hxmenu a', function () {
+            $(this).addClass('active').parent().siblings('li').find('a').removeClass('active');
+        });
+        //左侧竖向菜单
+        $(document).on('click', '.js_menu li', function () {
+            $(this).addClass('active').siblings('li').removeClass('active');
+        });
+        $(document).on('click', '.js_publishdata', function () {
+            var lid = $(this).attr("id");
+//                    if(lid!=null && lid!=""){
+            $.ajax({
+                url: '/user/userIsLogin.do',
+                type: 'post',
+                data: {},
+                dataType: 'json',
+                success: function (result) {
+                    if (result.success) {
+                        // window.location.href = "/phda/submit.html?id=" + lid + "&active=other";
+                        window.location.href = "/phda/submit.html"
+                        // downloadTemplate('/phda/submit.html?active=other', 'id', lid);
+                        /* if (result.loginusertype) {
+                            window.location.href = "/phda/submit.html?id="+lid+"&active=other";
+                        }else {
+                            layer.confirm('<h3 style="text-align: center">当前账号不可汇交数据，您可以通过个人账号挂靠该机构进行汇交数据</h3>', {
+                                btn: ['关闭'] //按钮
+                            })
+                        } */
+                    } else {
+                        //$(".maskbg").show();$('#kaptchaImage').hide().attr('src', '/kaptcha.jpg?' + Math.floor(Math.random()*100) ).fadeIn();
+                        window.location.href = "/phda/submit.html"
+                    }
+                }
+            });
+//					}
+            //window.location.href="/phda/collaborations.html";
+        });
+
+
+        /**
+         * 用于下载导入模板时的影藏form表单的提交，采用post方式提交
+         * @param action action映射地址
+         * @param type parameter的名称
+         * @param value parameter的值，这里为file的filename
+         */
+        function downloadTemplate(action, type, value) {
+            var form = document.createElement('form');
+            document.body.appendChild(form);
+            form.style.display = "none";
+            form.action = action;
+            form.id = 'excel';
+            form.method = 'post';
+
+            var newElement = document.createElement("input");
+            newElement.setAttribute("type", "hidden");
+            newElement.name = type;
+            newElement.value = value;
+            form.appendChild(newElement);
+            form.submit();
+        }
+
+        changeCode();
+    });
+
+    function isLogin() {
+        $.ajax({
+            url: '/user/userIsLogin.do',
+            type: 'post',
+            data: {},
+            dataType: 'json',
+            success: function (result) {
+                if (result.success) {
+                    window.location.href = '/userData/user_data.html?data_type=data_subscription';
+                } else {
+                    $(".maskbg").show();$('#kaptchaImage').hide().attr('src', '/kaptcha.jpg?' + Math.floor(Math.random()*100) ).fadeIn();
+                }
+            }
+        });
+    }
+
+    function changeCode() {  //刷新
+        $('#kaptchaImage').hide().attr('src', '/kaptcha.jpg?' + Math.floor(Math.random() * 100)).fadeIn();
+    }
+</script>
+<input type="hidden" id="public_key" value="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCr0ikn2X3d84JiqHK80vpMGNOtcqhQSTIHMWO3Q51WzAjLGjGqwd0CxWvwn/t4nTmtwdARniSLVm0vXDjLygK5jK0/RznVnn75BQSN3TYopWdvjcqR9Qeuw/+Pl73VYut9ZoaRdIx+u1OhyB0P4uCXlAnJ7SsAzVRDY4R9dwUZaQIDAQAB"/>
+<style>
+	.language_item_en .footer_info_list {
+		padding: 0;
+	}
+	/* 退出确认 Dialog */
+	.exit_dialog_headline {
+		color: #000000;
+		padding: 9px 0;
+		font-size: 16px;
+		font-weight: 600;
+		line-height: 20px;
+		text-align: center;
+	}
+
+	.exit_dialog_body {
+		margin: 10px 0 15px 0;
+	}
+
+	.exit_dialog_content {
+		width: 235px;
+		display: none;
+		padding: 0 25px;
+	}
+
+	.exit_dialog_info {
+		color: #000000;
+		line-height: 24px;
+		text-align: center;
+	}
+
+	.exit_dialog_box .layui-layer-btn {
+		text-align: center;
+	}
+
+	.exit_dialog_box .layui-layer-btn>a {
+		width: 78px;
+		height: 36px;
+		line-height: 36px;
+	}
+
+	.exit_dialog_box .layui-layer-btn0 {
+		border-color: #e9e9e9 !important;
+		background-color: #e9e9e9 !important;
+		color: #000000 !important;
+	}
+
+	.exit_dialog_box .layui-layer-btn1 {
+		border-color: #1E9FFF !important;
+		background-color: #1E9FFF !important;
+		color: #fff !important;
+	}
+</style>
+<div class="language_item_cn">
+	<div class="fixed-btn">
+		<a class="go-advisory" href="/phda/support.html?type=md030" title="在线咨询">
+			<img src="/resources/img2q/fixed-btn-advisory.png" alt="">
+			<span>在线咨询</span>
+		</a>
+		<!--		<a class="go-demand" href="/phda/service/demandService.html" title="数据需求">-->
+		<!--			<img src="/resources/img2q/fixed-btn-demand.png" alt="">-->
+		<!--			<span>数据需求</span>-->
+		<!--		</a>-->
+		<a class="go-top" href="#" title="返回顶部">
+			<img src="/resources/img2q/fixed-btn-top.png"/>
+			<span>返回顶部</span>
+		</a>
+	</div>
+	<div class="footer" style="min-width: 1200px;">
+		<div class="footer_info_section layui-clear">
+			<ul class="layui-col-md7 layui-col-xs7 layui-col-sm7">
+				<li class="footer_info_list">
+					<h4 class="layui-inline" style="font-weight: 600;">国家人口健康科学数据中心</h4>
+					<p class="layui-inline" style="font-weight: 600; margin: 0;">
+						<!--<a href="http://124.17.100.222/">（旧网入口）</a>-->
+						<a href="/phda/support.html?type=aboutus">关于我们</a>
+					</p>
+				</li>
+				<li class="footer_info_list">
+					<div class="layui-inline footer_second_info_list">数据汇交咨询：张老师</div>
+					<div class="layui-inline footer_second_info_list">电话：010-65105589（工作日8:30-12:00 、13:30-17:00）</div>
+				</li>
+				<li class="footer_info_list">
+					<div class="layui-inline footer_second_info_list">共享服务咨询：马老师</div>
+					<div class="layui-inline footer_second_info_list">电话：010-65105883（工作日8:30-12:00 、13:30-17:00）</div>
+				</li>
+				<li class="footer_info_list">
+					<div class="layui-inline footer_second_info_list">其他：罗老师</div>
+					<div class="layui-inline footer_second_info_list">电话：010-65105760（工作日8:30-12:00、13:30-17:00）</div>
+				</li>
+				<li class="footer_info_list">
+					<div class="layui-inline footer_second_info_list">邮箱：ncmisubmit@pumc.edu.cn（项目数据汇交业务）rkjkpt@126.com（其他业务）</div>
+				</li>
+				<li class="footer_info_list">
+					<div>地址：北京市东城区东单三条九号 中国医学科学院 人口健康数据中心</div>
+				</li>
+			</ul>
+			<ul class="layui-col-md5 layui-col-xs5 layui-col-sm5">
+				<li class="footer_info_list">
+					<div>技术支持：中国医学科学院医学信息研究所</div>
+				</li>
+				<li class="footer_info_list">
+					<div>电话：010-52328766</div>
+				</li>
+				<li class="footer_info_list">
+					<div>
+						<div class="layui-inline footer_second_info_list">地址：北京市朝阳区雅宝路3号</div>
+						<div class="layui-inline footer_second_info_list">邮编：100020</div>
+					</div>
+				</li>
+			</ul>
+		</div>
+		<div class="layui-col-md12 layui-col-xs12 layui-col-sm12 records_module">
+			<div class="section layui-clear">
+				<div class="records_info">
+					版权所有2017@All&nbsp;&nbsp;right&nbsp;&nbsp;reserved&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://beian.miit.gov.cn/" target="_blank">京ICP备06002729号2</a>&nbsp;<a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11040202450062" style="display:inline-block;text-decoration:none;height:20px;line-height:20px; vertical-align: top;"><i class="records_icon"></i><p style="float:right;height:20px;line-height:20px;margin: 0px 0px 0px 5px; ">京公网安备 11040202450062号</p></a>
+				</div>
+				<!--<div style="width:300px;margin:0 auto; padding:20px 0;">
+                    <a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11040202450062" style="display:inline-block;text-decoration:none;height:20px;line-height:20px;"><img src="" style="float:left;"/><p style="float:left;height:20px;line-height:20px;margin: 0px 0px 0px 5px; color:#939393;">京公网安备 11040202450062号</p></a>
+                </div>-->
+				<div class="records_other">
+					<a href="/phda/support.html?type=md028" target="_blank">隐私与安全政策</a>
+					<i>|</i>
+					<a href="/phda/support.html?type=md027" target="_blank">免责声明</a>
+					<i>|</i>
+					<a href="/phda/support.html?type=aboutus" target="_blank">关于我们</a>
+				</div>
+				<div class="records_date">
+					<label class="records_date_label">更新时间：</label>
+					<p class="records_date_info"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!--<div class="language_item_en">
+	<div class="fixed-btn">
+		&lt;!&ndash; <a class="go-demand" href="/phda/service/demandService.html" title="数据需求">Data<br/>Needs</a> &ndash;&gt;
+		<a class="go-top" href="#" title="Back to Top"><img src="/resources/img/no_more_img.png"/></a>
+	</div>
+	<div class="footer" style="min-width: 1200px;">
+		<div class="footer_info_section layui-clear">
+			<ul class="layui-col-md5 layui-col-xs5 layui-col-sm5">
+				<li class="footer_info_list">
+					<h4 class="layui-inline" style="font-weight: 600;">National Population Health Data Centre</h4>
+					<p class="layui-inline" style="font-weight: 600;">
+						&lt;!&ndash;<a href="http://124.17.100.222/">（旧网入口）</a>&ndash;&gt;
+						<a href="/phda/support.html?type=aboutus">About Us</a>
+					</p>
+				</li>
+				<li class="footer_info_list">
+					<div class="layui-inline footer_second_info_list">Contacts: Luo Wei</div>
+					<div class="layui-inline footer_second_info_list">Tele: 010-65250541</div>
+					<div class="layui-inline footer_second_info_list">Email: rkjkpt@126.com</div>
+				</li>
+				<li class="footer_info_list">
+					<div>Address: Administration Office of National Population Health Data Center</div>
+				</li>
+			</ul>
+			<ul class="layui-col-md7 layui-col-xs7 layui-col-sm7" style="padding: 0 0 0 96px;">
+				<li class="footer_info_list">
+					<div>Technical Support: Institute of Medical Information, Chinese Academy of Medical Sciences</div>
+				</li>
+				<li class="footer_info_list">
+					<div>Tele: 010-52328765</div>
+				</li>
+				<li class="footer_info_list">
+					<div>
+						<div class="layui-inline footer_second_info_list">Address: No 3 Yabao Road, Chaoyang District, Beijing</div>
+						<div class="layui-inline footer_second_info_list">Zip Code: 100020</div>
+					</div>
+				</li>
+			</ul>
+		</div>
+		<div class="layui-col-md12 layui-col-xs12 layui-col-sm12 records_module">
+			<div class="section layui-clear">
+				<div class="records_info">
+					Copyright&nbsp;©&nbsp;2017-2017&nbsp;All&nbsp;Rights&nbsp;京ICP备06002729-2&nbsp;<a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11040202450062" style="display:inline-block;text-decoration:none;height:20px;line-height:20px;"><i class="records_icon"></i><p style="float:right;height:20px;line-height:20px;margin: 0px 0px 0px 5px; ">京公网安备 11010502037788</p></a>
+				</div>
+				&lt;!&ndash;<div style="width:300px;margin:0 auto; padding:20px 0;">
+                    <a target="_blank" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11040202450062" style="display:inline-block;text-decoration:none;height:20px;line-height:20px;"><img src="" style="float:left;"/><p style="float:left;height:20px;line-height:20px;margin: 0px 0px 0px 5px; color:#939393;">京公网安备 11040202450062号</p></a>
+                </div>&ndash;&gt;
+				<div class="records_other">
+					<a href="/phda/support.html?type=md028" target="_blank" class="">Privacy and Safety Policies</a>
+					<i>|</i>
+					<a href="/phda/support.html?type=md027" target="_blank" class="">Disclaimer</a>
+					<i>|</i>
+					<a href="/phda/support.html?type=aboutus" target="_blank" class="">About Us</a>
+				</div>
+				<div class="records_date">
+					<label class="records_date_label">Update date：</label>
+					<p class="records_date_info"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>-->
+<div class="exit_dialog_content" id="exit_dialog_content">
+	<div class="exit_dialog_head">
+		<div class="exit_dialog_headline">退出账号</div>
+	</div>
+	<div class="exit_dialog_body">
+		<div class="exit_dialog_info">确定要退出账号吗？</div>
+	</div>
+</div>
+<script type="text/javascript">
+
+    var myDate = new Date;
+    var year = myDate.getFullYear();
+    var mon = myDate.getMonth() + 1;
+    var date = myDate.getDate();
+    var now = year+'.'+getNow(mon)+"."+getNow(date);
+
+    //判断是否在前面加0
+    function getNow(s) {
+        return s < 10 ? '0' + s: s;
+    }
+
+	$('.records_date_info').text(now);
+
+
+    var _paq = _paq || [];
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function() {
+        var u="//analytics.escience.org.cn/";
+        _paq.push(['setTrackerUrl', u+'piwik.php']);
+        _paq.push(['setSiteId', '2']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'piwik.js'; s.parentNode.insertBefore(g,s);
+    })();
+    $(function() {
+		getnumanalytics();
+		$.ajax({
+			type: 'post',
+			url: '/index/analytics.do',
+			data: {'url': "setTrackerUrl"},
+			dataType: 'json',
+			success: function (data) {
+				// layer.msg(data);
+			}
+		});
+
+
+    });
+	function getnumanalytics() {
+		$.ajax({
+			type: 'post',
+			url: '/index/getnumanalytics.do',
+			data: {},
+			dataType: 'json',
+			success: function (data) {
+				if(data.status == 200){
+					$('.visitor_volume').html(data.data);
+				}
+			}
+		});
+	}
+
+	function escapemy(str) {
+		return str;
+	}
+	function escthingf() {
+		$.ajax({
+			type: "post",
+			url: "/loginLayout.do",
+			data: {},
+			dataType: "json",
+			async: false,
+			success: function (data) {
+				deleteCookie("userName", "/");
+				deleteCookie("userPass", "/");
+			}
+		});
+		window.location.href = "/phda/login.html";
+	}
+
+
+	function escthing() {
+
+		layui.use(['layer'], function () {
+			var layer = layui.layer;
+			layer.open({
+				type: 1,
+				move: false,
+				area: 'auto',
+				resize: false,
+				offset: 'auto',
+				maxWidth: 'auto',
+				maxHeight: 'auto',
+				id: 'layerDemoauto' + "auto",
+				title: [
+					'',
+					'background: none; border-bottom: 0;'
+				],
+				content: $("#exit_dialog_content"),
+				btn: ['取消', '确定'],
+				success: function (layer, index) {
+					$(layer[0]).addClass('exit_dialog_box')
+				}
+				,btn2: function(index, layero){
+					escthingf();
+				}
+			});
+		});
+	}
+</script>
+</body>
+</html>

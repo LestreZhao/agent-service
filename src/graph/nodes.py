@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from langgraph.graph import END
 
-from src.agents import research_agent, coder_agent, browser_agent
+from src.agents import research_agent, coder_agent, browser_agent, db_analyst_agent
 from src.agents.llm import get_llm_by_type
 from src.config import TEAM_MEMBERS
 from src.config.agents import AGENT_LLM_MAP
@@ -75,6 +75,27 @@ def browser_node(state: State) -> Command[Literal["supervisor"]]:
                         "browser", result["messages"][-1].content
                     ),
                     name="browser",
+                )
+            ]
+        },
+        goto="supervisor",
+    )
+
+
+def db_analyst_node(state: State) -> Command[Literal["supervisor"]]:
+    """Node for the database analyst agent that performs database queries and analysis."""
+    logger.info("Database analyst agent starting task")
+    result = db_analyst_agent.invoke(state)
+    logger.info("Database analyst agent completed task")
+    logger.debug(f"Database analyst agent response: {result['messages'][-1].content}")
+    return Command(
+        update={
+            "messages": [
+                HumanMessage(
+                    content=RESPONSE_FORMAT.format(
+                        "db_analyst", result["messages"][-1].content
+                    ),
+                    name="db_analyst",
                 )
             ]
         },
