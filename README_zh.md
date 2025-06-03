@@ -161,7 +161,7 @@ VL_BASE_URL=your_custom_base_url  # 可选
 
 # 工具 API 密钥
 TAVILY_API_KEY=your_tavily_api_key
-JINA_API_KEY=your_jina_api_key  # 可选
+FIRECRAWL_API_KEY=your_firecrawl_api_key
 
 # 浏览器配置
 CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # 可选，Chrome 可执行文件路径
@@ -169,14 +169,14 @@ CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrom
 
 > **注意：**
 >
-> - 系统对不同类型的任务使用不同的模型：
->     - 推理 LLM 用于复杂的决策和分析
->     - 基础 LLM 用于简单的文本任务
+> - 系统为不同类型的任务使用不同的模型：
+>     - 推理 LLM 用于复杂的决策制定和分析
+>     - 基础 LLM 用于较简单的基于文本的任务
 >     - 视觉语言 LLM 用于涉及图像理解的任务
-> - 所有 LLM 的基础 URL 都可以独立自定义
-> - 每个 LLM 可以使用不同的 API 密钥
-> - Jina API 密钥是可选的，提供自己的密钥可以获得更高的速率限制（你可以在 [jina.ai](https://jina.ai/) 获该密钥）
-> - Tavily 搜索默认配置为最多返回 5 个结果（你可以在 [app.tavily.com](https://app.tavily.com/) 获取该密钥）
+> - 你可以为所有 LLM 独立自定义基础 URL
+> - 如果需要，每个 LLM 可以使用不同的 API 密钥
+> - Firecrawl API 密钥是必需的，用于网页内容提取（在 [firecrawl.dev](https://www.firecrawl.dev/app/usage) 获取 API 密钥）
+> - Tavily 搜索默认配置为返回最多 5 个结果（在 [app.tavily.com](https://app.tavily.com/) 获取 API 密钥）
 
 您可以复制 `.env.example` 文件作为模板开始：
 

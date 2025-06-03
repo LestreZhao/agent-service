@@ -13,6 +13,7 @@ from .env import (
     VL_API_KEY,
     # Other configurations
     CHROME_INSTANCE_PATH,
+    FIRECRAWL_API_KEY,
 )
 from .tools import TAVILY_MAX_RESULTS
 
@@ -36,4 +37,5 @@ __all__ = [
     "TEAM_MEMBERS",
     "TAVILY_MAX_RESULTS",
     "CHROME_INSTANCE_PATH",
+    "FIRECRAWL_API_KEY",
 ]

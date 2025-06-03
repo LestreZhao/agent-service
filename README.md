@@ -114,7 +114,10 @@ We're committed to giving back to the community and welcome contributions of all
 
 ### Prerequisites
 
-- [uv](https://github.com/astral-sh/uv) package manager
+- Python 3.12+
+- API keys for LLM services (OpenAI, DeepSeek, etc.)
+- Tavily API key for web search
+- Firecrawl API key for web crawling (required)
 
 ### Installation
 
@@ -156,7 +159,7 @@ VL_BASE_URL=your_custom_base_url  # Optional
 
 # Tool API Keys
 TAVILY_API_KEY=your_tavily_api_key
-JINA_API_KEY=your_jina_api_key  # Optional
+FIRECRAWL_API_KEY=your_firecrawl_api_key
 
 # Browser Configuration
 CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # Optional, path to Chrome executable
@@ -170,7 +173,7 @@ CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrom
 >     - Vision-Language LLM for tasks involving image understanding
 > - You can customize the base URLs for all LLMs independently
 > - Each LLM can use different API keys if needed
-> - Jina API key is optional. Provide your own key to access a higher rate limit (get your API key at [jina.ai](https://jina.ai/))
+> - Firecrawl API key is required for web content extraction (get your API key at [firecrawl.dev](https://www.firecrawl.dev/app/usage))
 > - Tavily search is configured to return a maximum of 5 results by default (get your API key at [app.tavily.com](https://app.tavily.com/))
 
 You can copy the `.env.example` file as a template to get started:
@@ -316,3 +319,21 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Acknowledgments
 
 Special thanks to all the open source projects and contributors that make LangManus possible. We stand on the shoulders of giants.
+
+### Key Features
+
+This system implements a sophisticated multi-agent workflow:
+
+1. **Planner Agent** - Creates detailed execution plans for complex tasks
+2. **Researcher Agent** - Gathers information from the internet using advanced search and crawling
+3. **Coder Agent** - Executes Python code, performs calculations, and handles data analysis
+4. **Reporter Agent** - Synthesizes information into comprehensive reports
+5. **Coordinator** - Manages the overall workflow and agent interactions
+
+### Technologies Used
+
+- [LangChain](https://langchain.com/) for LLM integration and tool management
+- [LangGraph](https://langgraph.dev/) for multi-agent workflow orchestration
+- [Tavily](https://tavily.com/) for intelligent web search
+- [Firecrawl](https://www.firecrawl.dev/) for high-quality web content extraction
+- [FastAPI](https://fastapi.tiangolo.com/) for the REST API backend
