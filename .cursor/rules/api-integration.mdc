@@ -1,0 +1,181 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# API 集成和外部服务规则
+
+## API 架构
+
+FusionAI 集成多种外部API服务，提供丰富的功能支持。
+
+### 主要API服务
+- **LLM服务**: OpenAI、DeepSeek等兼容模型
+- **搜索服务**: Tavily搜索API  
+- **网页抓取**: Firecrawl API
+- **神经搜索**: Jina API
+- **浏览器自动化**: browser-use库
+
+## LLM API 集成
+
+### 三层LLM架构
+```python
+# LLM类型定义
+LLM_TYPES = {
+    "reasoning": "推理模型 - 复杂推理和决策",
+    "basic": "基础模型 - 简单文本任务", 
+    "vl": "视觉语言模型 - 图像理解任务"
+}
+```
+
+### LLM配置管理
+- 配置文件：[src/config/env.py](mdc:src/config/env.py)
+- LLM工厂：[src/agents/llm.py](mdc:src/agents/llm.py)
+- 支持自定义BASE_URL和API密钥
+
+### API调用优化
+1. **模型选择策略**: 根据任务复杂度选择合适的LLM
+2. **错误重试机制**: 实现指数退避重试策略
+3. **响应缓存**: 缓存重复请求的响应结果
+4. **并发控制**: 限制同时进行的API调用数量
+
+## 搜索API集成
+
+### Tavily搜索配置
+- API密钥：`TAVILY_API_KEY`
+- 默认返回结果数：5条
+- 支持实时网络搜索和内容提取
+
+### 搜索策略
+```python
+# 搜索参数配置
+SEARCH_CONFIG = {
+    "max_results": 5,
+    "search_depth": "advanced",
+    "include_domains": [],
+    "exclude_domains": []
+}
+```
+
+### 搜索结果处理
+- 自动内容清理和格式化
+- 重复内容去除
+- 相关性评分和排序
+
+## 网页抓取API
+
+### Firecrawl集成
+- **必需配置**: `FIRECRAWL_API_KEY`
+- **功能**: 网页内容提取、PDF处理、结构化数据提取
+- **API文档**: https://www.firecrawl.dev/
+
+### 抓取配置选项
+```python
+# Firecrawl参数配置
+FIRECRAWL_CONFIG = {
+    "pageOptions": {
+        "onlyMainContent": True,
+        "includeHtml": False,
+        "screenshot": False
+    },
+    "extractorOptions": {
+        "mode": "llm-extraction",
+        "extractionPrompt": "自定义提取提示词"
+    }
+}
+```
+
+### 错误处理策略
+- API限制和配额管理
+- 网络超时和重试机制
+- 内容格式验证和清理
+
+## 浏览器自动化API
+
+### browser-use库集成
+- 基于Playwright的浏览器自动化
+- 支持Chrome、Firefox等主流浏览器
+- 提供AI驱动的网页交互能力
+
+### 浏览器配置
+```ini
+# 浏览器路径配置
+CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+```
+
+### 自动化功能
+- 网页导航和元素交互
+- 表单填写和提交
+- 截图和内容提取
+- JavaScript执行
+
+## API安全和认证
+
+### 密钥管理
+- 使用环境变量存储API密钥
+- 避免在代码中硬编码敏感信息
+- 定期轮换API密钥
+
+### 错误处理
+```python
+# API错误处理模式
+def handle_api_error(error):
+    if error.status_code == 401:
+        return "API密钥无效或过期"
+    elif error.status_code == 429:
+        return "API调用频率超限，请稍后重试"
+    elif error.status_code >= 500:
+        return "服务器错误，请稍后重试"
+    else:
+        return f"未知错误: {error.message}"
+```
+
+### 监控和日志
+- 记录API调用的成功率和响应时间
+- 监控API配额使用情况
+- 实现异常警报和通知机制
+
+## Web服务API
+
+### FastAPI应用
+- 主文件：[src/api/app.py](mdc:src/api/app.py)
+- 启动脚本：[server.py](mdc:server.py)
+- 支持RESTful API和WebSocket
+
+### API端点设计
+```python
+# 主要API端点
+ENDPOINTS = {
+    "/chat": "聊天交互接口",
+    "/workflow": "工作流执行接口", 
+    "/status": "系统状态查询",
+    "/health": "健康检查接口"
+}
+```
+
+### 中间件配置
+- CORS跨域支持
+- 请求限流和安全防护
+- 请求/响应日志记录
+- 错误处理和异常捕获
+
+## 开发最佳实践
+
+### API集成开发
+1. **环境隔离**: 开发、测试、生产环境分离
+2. **配置验证**: 启动时验证必需的API配置
+3. **优雅降级**: API不可用时的备选方案
+4. **性能监控**: 跟踪API调用性能和可用性
+
+### 新API集成流程
+1. 在 [src/config/env.py](mdc:src/config/env.py) 中添加配置项
+2. 在相应的工具模块中实现API客户端
+3. 实现错误处理和重试逻辑
+4. 添加单元测试和集成测试
+5. 更新文档和配置说明
+
+### 测试策略
+- 使用模拟（Mock）服务进行单元测试
+- 集成测试验证API交互流程
+- 压力测试评估API性能和稳定性
+- 定期验证外部API的可用性和变更

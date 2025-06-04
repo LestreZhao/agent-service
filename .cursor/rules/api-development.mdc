@@ -3,324 +3,245 @@ description:
 globs: 
 alwaysApply: false
 ---
-# API 开发规范
+# FastAPI 应用开发规范
 
-## FastAPI 应用结构
+## API 服务架构
 
-本项目使用 FastAPI 构建 Web API，主要入口文件是 [server.py](mdc:server.py)。
+FusionAI 的 API 层基于 FastAPI 框架构建，提供高性能的异步 Web 服务。
 
-### 路由组织
+### 主要组件
+- **API 路由**: 定义 RESTful 端点和 WebSocket 连接
+- **中间件**: 处理跨域、日志记录、错误处理等
+- **流式响应**: 支持实时数据流和服务器发送事件(SSE)
+- **智能体集成**: 与 LangGraph 工作流无缝集成
 
-API 路由应该在 [src/api/](mdc:src/api) 目录中按功能模块组织：
+## 核心文件
 
-```python
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
-from pydantic import BaseModel
+### API 应用入口
+- [src/api/app.py](mdc:src/api/app.py) - FastAPI 应用定义和配置
+- [server.py](mdc:server.py) - 服务器启动脚本
 
-router = APIRouter(prefix="/api/v1", tags=["agents"])
+### 路由定义
+- [src/api/routers/](mdc:src/api/routers/) - API 路由模块
+- [src/api/middleware/](mdc:src/api/middleware/) - 中间件定义
 
-class TaskRequest(BaseModel):
-    task: str
-    options: Optional[dict] = None
+## 流式聊天接口
 
-class TaskResponse(BaseModel):
-    task_id: str
-    status: str
-    result: Optional[dict] = None
+### `/api/chat/stream` 端点
 
-@router.post("/tasks", response_model=TaskResponse)
-async def create_task(request: TaskRequest):
-    """创建新的任务"""
-    # 实现任务创建逻辑
-    pass
-```
-
-### 依赖注入
-
-使用 FastAPI 的依赖注入系统管理服务：
+这是核心聊天接口，支持与智能体的实时对话：
 
 ```python
-from fastapi import Depends
-from src.service.workflow_service import WorkflowService
-
-async def get_workflow_service() -> WorkflowService:
-    """获取工作流服务实例"""
-    return WorkflowService()
-
-@router.post("/execute")
-async def execute_workflow(
-    task: str,
-    service: WorkflowService = Depends(get_workflow_service)
-):
-    """执行工作流"""
-    result = await service.execute(task)
-    return result
-```
-
-## 流式响应
-
-对于长时间运行的任务，使用 SSE (Server-Sent Events) 提供实时更新：
-
-```python
-from fastapi.responses import StreamingResponse
-from sse_starlette.sse import EventSourceResponse
-import asyncio
-import json
-
-@router.get("/tasks/{task_id}/stream")
-async def stream_task_progress(task_id: str):
-    """流式返回任务进度"""
-    
-    async def event_generator():
-        # 模拟任务进度更新
-        for progress in range(0, 101, 10):
-            yield {
-                "event": "progress",
-                "data": json.dumps({
-                    "task_id": task_id,
-                    "progress": progress,
-                    "status": "running" if progress < 100 else "completed"
-                })
-            }
-            await asyncio.sleep(1)
-    
-    return EventSourceResponse(event_generator())
-```
-
-## 错误处理
-
-### 自定义异常处理器
-
-```python
-from fastapi import FastAPI, HTTPException
-from fastapi.exception_handlers import http_exception_handler
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
-app = FastAPI()
-
-class WorkflowException(Exception):
-    def __init__(self, message: str, status_code: int = 500):
-        self.message = message
-        self.status_code = status_code
-
-@app.exception_handler(WorkflowException)
-async def workflow_exception_handler(request, exc: WorkflowException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": "workflow_error",
-            "message": exc.message,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    )
-```
-
-### 标准错误响应
-
-```python
-from pydantic import BaseModel
-from datetime import datetime
-
-class ErrorResponse(BaseModel):
-    error: str
-    message: str
-    timestamp: datetime
-    path: Optional[str] = None
-
-@router.post("/tasks")
-async def create_task(request: TaskRequest):
-    try:
-        # 业务逻辑
-        pass
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=ErrorResponse(
-                error="validation_error",
-                message=str(e),
-                timestamp=datetime.utcnow()
-            ).dict()
-        )
-```
-
-## 请求验证
-
-### 输入数据验证
-
-使用 Pydantic 模型进行严格的数据验证：
-
-```python
-from pydantic import BaseModel, Field, validator
-from typing import List, Optional
-
-class TaskConfig(BaseModel):
-    max_iterations: int = Field(default=5, ge=1, le=100)
-    timeout_seconds: int = Field(default=300, ge=30, le=3600)
-    model_type: str = Field(default="openai", regex="^(openai|deepseek)$")
-    
-    @validator('max_iterations')
-    def validate_iterations(cls, v):
-        if v <= 0:
-            raise ValueError('最大迭代次数必须大于 0')
-        return v
-
-class TaskRequest(BaseModel):
-    task: str = Field(..., min_length=1, max_length=1000)
-    config: Optional[TaskConfig] = None
-    
-    @validator('task')
-    def validate_task(cls, v):
-        if not v.strip():
-            raise ValueError('任务描述不能为空')
-        return v.strip()
-```
-
-## 认证和授权
-
-### API 密钥认证
-
-```python
-from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import os
-
-security = HTTPBearer()
-
-async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """验证 API 密钥"""
-    expected_key = os.getenv("API_KEY")
-    if not expected_key:
-        raise HTTPException(status_code=500, detail="服务器配置错误")
-    
-    if credentials.credentials != expected_key:
-        raise HTTPException(status_code=401, detail="无效的 API 密钥")
-    
-    return credentials.credentials
-
-@router.post("/protected-endpoint")
-async def protected_endpoint(
-    data: dict,
-    api_key: str = Depends(verify_api_key)
-):
-    """需要认证的端点"""
-    pass
-```
-
-## 文档和元数据
-
-### OpenAPI 配置
-
-```python
-from fastapi import FastAPI
-
-app = FastAPI(
-    title="LangManus API",
-    description="AI 自动化框架 API",
-    version="0.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_tags=[
-        {
-            "name": "tasks",
-            "description": "任务管理相关接口",
-        },
-        {
-            "name": "agents",
-            "description": "AI 代理相关接口",
-        }
-    ]
-)
-```
-
-### 响应示例
-
-为 API 端点添加响应示例：
-
-```python
-@router.post(
-    "/tasks",
-    response_model=TaskResponse,
-    responses={
-        200: {
-            "description": "任务创建成功",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "task_id": "task_123",
-                        "status": "pending",
-                        "result": None
-                    }
-                }
-            }
-        },
-        400: {
-            "description": "请求参数错误",
-            "model": ErrorResponse
-        }
-    }
-)
-async def create_task(request: TaskRequest):
-    """创建新的任务
-    
-    创建一个新的 AI 任务，返回任务 ID 用于后续查询。
+@app.post("/api/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """
+    流式聊天接口
+    - 接收用户消息
+    - 调用 LangGraph 工作流
+    - 返回 SSE 流式响应
     """
     pass
 ```
 
-## 中间件
-
-### 请求日志中间件
-
-```python
-import time
-import logging
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-
-logger = logging.getLogger(__name__)
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        start_time = time.time()
-        
-        # 记录请求信息
-        logger.info(f"请求开始: {request.method} {request.url}")
-        
-        # 处理请求
-        response = await call_next(request)
-        
-        # 计算处理时间
-        process_time = time.time() - start_time
-        logger.info(f"请求完成: {response.status_code} - {process_time:.2f}s")
-        
-        return response
-
-app.add_middleware(LoggingMiddleware)
+### 请求格式
+```json
+{
+  "messages": [
+    {"role": "user", "content": "用户查询内容"}
+  ],
+  "debug": false
+}
 ```
 
-## 配置管理
+### 响应格式
+使用 Server-Sent Events (SSE) 流式传输：
 
-### 环境特定配置
-
-```python
-from pydantic import BaseSettings
-from functools import lru_cache
-
-class APISettings(BaseSettings):
-    host: str = "0.0.0.0"
-    port: int = 8000
-    debug: bool = False
-    cors_origins: List[str] = ["*"]
-    max_request_size: int = 10 * 1024 * 1024  # 10MB
-    
-    class Config:
-        env_prefix = "API_"
-        env_file = ".env"
-
-@lru_cache()
-def get_settings():
-    return APISettings()
-
-settings = get_settings()
 ```
+data: {"type": "agent_start", "agent": "supervisor", "timestamp": "..."}
+
+data: {"type": "agent_message", "agent": "researcher", "content": "搜索结果..."}
+
+data: {"type": "agent_finish", "agent": "reporter", "final_answer": "最终答案"}
+
+data: {"type": "workflow_complete"}
+```
+
+## 中间件配置
+
+### CORS 中间件
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 生产环境应限制特定域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+### 日志中间件
+- 记录请求/响应信息
+- 监控 API 性能指标
+- 错误追踪和调试
+
+### 安全中间件
+- 请求限流
+- 身份验证（如需要）
+- 输入验证和清理
+
+## 错误处理
+
+### 全局异常处理器
+```python
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"error": "内部服务器错误", "detail": str(exc)}
+    )
+```
+
+### 常见错误类型
+- **400 Bad Request**: 请求格式错误
+- **422 Unprocessable Entity**: 数据验证失败
+- **500 Internal Server Error**: 服务器内部错误
+- **503 Service Unavailable**: 外部 API 不可用
+
+## 性能优化
+
+### 异步处理
+```python
+async def process_workflow(messages: List[Message]) -> AsyncGenerator:
+    """异步处理工作流，支持流式输出"""
+    async for chunk in workflow_executor(messages):
+        yield chunk
+```
+
+### 连接池管理
+- HTTP 客户端连接池
+- 数据库连接池
+- Redis 连接池
+
+### 缓存策略
+- 响应缓存
+- 查询结果缓存
+- 静态资源缓存
+
+## WebSocket 支持
+
+### WebSocket 端点
+```python
+@app.websocket("/ws/chat")
+async def websocket_chat(websocket: WebSocket):
+    """WebSocket 聊天接口"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # 处理消息并发送响应
+            await websocket.send_text(response)
+    except WebSocketDisconnect:
+        pass
+```
+
+### 连接管理
+- 连接状态追踪
+- 消息队列管理
+- 断线重连处理
+
+## 监控和健康检查
+
+### 健康检查端点
+```python
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    }
+```
+
+### 指标收集
+- API 调用次数
+- 响应时间分布
+- 错误率统计
+- 并发连接数
+
+## API 文档
+
+### 自动文档生成
+- Swagger UI: `/docs`
+- ReDoc: `/redoc`
+- OpenAPI 规范: `/openapi.json`
+
+### 文档配置
+```python
+app = FastAPI(
+    title="FusionAI API",
+    description="智能体工作流 API 服务",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+```
+
+## 部署和配置
+
+### 环境配置
+- 开发环境: 调试模式，详细日志
+- 测试环境: 集成测试，性能测试
+- 生产环境: 优化配置，监控告警
+
+### 启动配置
+```python
+if __name__ == "__main__":
+    uvicorn.run(
+        "src.api.app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,  # 仅开发环境
+        workers=4     # 生产环境多进程
+    )
+```
+
+### Docker 部署
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## 开发最佳实践
+
+### API 设计原则
+1. **RESTful 设计**: 遵循 REST 架构风格
+2. **版本控制**: API 版本化管理
+3. **文档优先**: 先设计 API 文档
+4. **测试驱动**: 编写全面的 API 测试
+
+### 代码组织
+```
+src/api/
+├── app.py              # FastAPI 应用主文件
+├── routers/            # 路由模块
+│   ├── chat.py         # 聊天相关路由
+│   └── health.py       # 健康检查路由
+├── middleware/         # 中间件
+│   ├── cors.py         # CORS 处理
+│   └── logging.py      # 日志中间件
+├── models/             # Pydantic 模型
+│   └── chat.py         # 聊天请求/响应模型
+└── dependencies/       # 依赖注入
+    └── auth.py         # 认证依赖
+```
+
+### 安全考虑
+- 输入验证和清理
+- SQL 注入防护
+- XSS 攻击防护
+- 速率限制
+- 身份验证和授权

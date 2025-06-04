@@ -5,15 +5,11 @@ alwaysApply: false
 ---
 # Cursor 规则总览
 
-这个目录包含了 LangManus 项目的 Cursor AI 辅助开发规则，帮助 AI 更好地理解和协助项目开发。
+这个目录包含了 FusionAI 项目的 Cursor AI 辅助开发规则，帮助 AI 更好地理解和协助项目开发。
 
 ## 规则文件说明
 
-### [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
-浏览器配置相关规则，包含：
-- browser-use 库的配置方法
-- 常见浏览器启动问题解决方案
-- 版本兼容性说明
+### 核心架构规则
 
 ### [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)  
 项目整体架构指南，包含：
@@ -21,11 +17,103 @@ alwaysApply: false
 - 核心文件功能介绍
 - 智能体类型概览
 
+### [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc)
+LangGraph工作流开发规则，包含：
+- LangGraph架构概述
+- 工作流构建方法
+- 智能体集成模式
+- 节点和状态管理
+
+### 环境和配置规则
+
+### [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)
+环境设置和配置规则，包含：
+- Python环境配置
+- 依赖管理指南
+- 环境变量配置
+- 常见问题解决
+
+### [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
+浏览器配置相关规则，包含：
+- browser-use 库的配置方法
+- 常见浏览器启动问题解决方案
+- 版本兼容性说明
+
+### 开发规范规则
+
 ### [development-guidelines.mdc](mdc:.cursor/rules/development-guidelines.mdc)
 开发规范和最佳实践，包含：
 - 环境设置指南
 - 代码规范要求
 - 调试方法说明
+
+### [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc)
+测试和代码质量规则，包含：
+- 测试框架使用指南
+- 代码质量工具配置
+- 开发最佳实践
+- 性能优化建议
+
+### [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc)
+Python开发最佳实践，包含：
+- 代码风格规范
+- 性能优化建议
+- 安全编程指南
+
+### API和集成规则
+
+### [api-integration.mdc](mdc:.cursor/rules/api-integration.mdc)
+API集成和外部服务规则，包含：
+- LLM API集成模式
+- 搜索和网页抓取API
+- 浏览器自动化配置
+- API安全和错误处理
+
+### [api-development.mdc](mdc:.cursor/rules/api-development.mdc)
+API开发规范，包含：
+- FastAPI应用开发
+- RESTful设计原则
+- 中间件配置
+- 异步处理模式
+
+### 数据处理和分析规则
+
+### [data-processing.mdc](mdc:.cursor/rules/data-processing.mdc)
+数据处理和分析规则，包含：
+- 数据处理框架使用
+- Python执行环境配置
+- 数据清理和验证
+- 金融数据分析
+- 数据库集成
+- 性能优化策略
+
+### 工作流和模式规则
+
+### [ai-agent-patterns.mdc](mdc:.cursor/rules/ai-agent-patterns.mdc)
+AI智能体设计模式，包含：
+- 智能体架构模式
+- 协作机制设计
+- 任务分发策略
+
+### [session-management.mdc](mdc:.cursor/rules/session-management.mdc)
+会话管理规则，包含：
+- 用户会话处理
+- 状态保持机制
+- 并发会话管理
+
+### [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
+性能优化规则，包含：
+- 系统性能监控
+- 资源使用优化
+- 缓存策略实现
+
+### 运维和故障处理规则
+
+### [git-workflow.mdc](mdc:.cursor/rules/git-workflow.mdc)
+Git工作流规范，包含：
+- 分支管理策略
+- 提交规范要求
+- 代码审查流程
 
 ### [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
 故障排除手册，包含：
@@ -40,6 +128,8 @@ alwaysApply: false
 2. **问题诊断** - 根据错误信息快速定位问题
 3. **开发辅助** - 遵循项目规范进行代码修改
 4. **配置管理** - 正确设置开发环境和依赖
+5. **数据分析** - 进行数据处理和分析任务
+6. **API集成** - 正确集成外部服务和API
 
 ## 维护说明
 
@@ -50,8 +140,20 @@ alwaysApply: false
 - 修改浏览器配置方式  
 - 更新依赖库版本
 - 改变项目结构
+- 新增API集成
+- 修改工作流模式
+- 添加新的数据源
+- 更新数据处理方法
 
 ### 文件格式
 - 使用 `.mdc` 扩展名
 - 支持 Markdown 语法
 - 使用 `[filename](mdc:filename)` 引用项目文件
+
+### 规则分类
+- **核心架构**: 项目结构、工作流设计
+- **环境配置**: 开发环境、依赖管理
+- **开发规范**: 代码质量、测试规范
+- **API集成**: 外部服务、接口设计
+- **数据处理**: 数据分析、数据库集成
+- **运维管理**: 故障处理、性能优化

@@ -1,0 +1,138 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 环境设置和配置规则
+
+## 环境要求
+
+### Python 版本
+- **最低要求**: Python 3.12+
+- **推荐版本**: Python 3.12
+- 版本配置文件：[.python-version](mdc:.python-version)
+
+### 依赖管理器
+- 使用 **uv** 作为包管理器
+- 优势：快速、可靠的依赖解析和安装
+
+## 初始环境设置
+
+### 1. 克隆和基础设置
+```bash
+git clone https://github.com/fusionai/fusionai.git
+cd fusionai
+```
+
+### 2. Python 环境配置
+```bash
+# 安装 Python 3.12
+uv python install 3.12
+
+# 创建虚拟环境
+uv venv --python 3.12
+
+# 激活虚拟环境
+source .venv/bin/activate  # macOS/Linux
+# 或 .venv\Scripts\activate  # Windows
+```
+
+### 3. 依赖安装
+```bash
+# 安装所有依赖
+uv sync
+
+# 仅安装运行时依赖
+uv sync --no-dev
+```
+
+## 环境变量配置
+
+### 配置文件
+- 模板文件：`.env.example`
+- 实际配置：`.env` (需要创建)
+
+### 三层LLM系统配置
+```ini
+# 推理LLM（复杂推理任务）
+REASONING_MODEL=your_reasoning_model
+REASONING_API_KEY=your_reasoning_api_key
+REASONING_BASE_URL=your_custom_base_url  # 可选
+
+# 基础LLM（简单任务）
+BASIC_MODEL=your_basic_model
+BASIC_API_KEY=your_basic_api_key
+BASIC_BASE_URL=your_custom_base_url  # 可选
+
+# 视觉语言LLM（图像理解任务）
+VL_MODEL=your_vl_model
+VL_API_KEY=your_vl_api_key
+VL_BASE_URL=your_custom_base_url  # 可选
+```
+
+### 工具API配置
+```ini
+# 搜索工具
+TAVILY_API_KEY=your_tavily_api_key
+
+# 网页抓取工具（必需）
+FIRECRAWL_API_KEY=your_firecrawl_api_key
+
+# 浏览器配置（可选）
+CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+```
+
+## 开发环境配置
+
+### IDE设置
+- 推荐使用 **Cursor** 或 **VS Code**
+- 配置文件：[.vscode/](mdc:.vscode/)
+- Python解释器：指向 `.venv/bin/python`
+
+### 代码格式化设置
+- 编辑器中启用 Black 格式化
+- 保存时自动格式化
+- 配置参考：[pyproject.toml](mdc:pyproject.toml) 中的 `[tool.black]` 部分
+
+### Git配置
+- 预提交钩子设置：参考 [pre-commit](mdc:pre-commit)
+- `.gitignore` 配置：[.gitignore](mdc:.gitignore)
+
+## 验证环境设置
+
+### 快速验证
+```bash
+# 检查Python版本
+python --version
+
+# 检查依赖安装
+uv show
+
+# 运行基本测试
+python -c "import src; print('Environment setup successful!')"
+```
+
+### 运行项目
+```bash
+# 命令行方式
+uv run main.py
+
+# Web服务方式
+uv run server.py
+```
+
+## 常见环境问题
+
+### uv 相关问题
+1. **uv 未安装**: 访问 https://github.com/astral-sh/uv 获取安装说明
+2. **Python版本不匹配**: 使用 `uv python install 3.12`
+3. **依赖冲突**: 删除 `.venv` 目录重新创建
+
+### API密钥问题
+1. **缺少必需的API密钥**: 确保 FIRECRAWL_API_KEY 已配置
+2. **API密钥格式错误**: 检查密钥字符串中是否有多余的空格或换行
+3. **BASE_URL配置**: 确保URL格式正确（以http://或https://开头）
+
+### 浏览器配置问题
+- Chrome路径不正确：根据操作系统调整 CHROME_INSTANCE_PATH
+- 浏览器权限问题：确保Chrome可执行文件有正确权限

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "lang-manus"
+name = "fusionai"
 version = "0.1.0"
-description = "Lang-Manus project"
+description = "FusionAI - AI自动化框架，由湖北福鑫科创信息技术有限公司研发"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

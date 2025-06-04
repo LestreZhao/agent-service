@@ -1,0 +1,133 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# LangGraph 工作流开发规则
+
+## LangGraph 架构概述
+
+FusionAI 基于 LangGraph 构建多智能体协作系统，实现复杂任务的自动化处理。
+
+### 核心组件
+- **节点 (Nodes)**: 代表工作流中的各个步骤或智能体
+- **边 (Edges)**: 定义节点间的连接和数据流
+- **状态 (State)**: 在节点间传递的数据结构
+- **条件路由**: 基于状态内容决定下一步执行路径
+
+## 工作流构建
+
+### 图构建器
+- 主要文件：[src/graph/builder.py](mdc:src/graph/builder.py)
+- 负责创建和配置工作流图
+- 定义智能体间的协作关系
+
+### 节点定义
+- 主要文件：[src/graph/nodes.py](mdc:src/graph/nodes.py)
+- 实现各个工作流节点的具体逻辑
+- 每个节点对应一个特定的智能体或功能
+
+### 状态管理
+- 状态在整个工作流中保持一致性
+- 包含任务信息、中间结果、配置参数等
+- 支持状态的读取、更新和传递
+
+## 智能体集成
+
+### 智能体类型映射
+```python
+# 主要智能体类型
+AGENT_TYPES = {
+    "coordinator": "任务协调员",
+    "planner": "任务规划员", 
+    "researcher": "研究员",
+    "coder": "程序员",
+    "browser": "浏览器操作员",
+    "reporter": "报告员"
+}
+```
+
+### 智能体配置
+- 配置文件：[src/config/agents.py](mdc:src/config/agents.py)
+- LLM模型映射：[src/agents/llm.py](mdc:src/agents/llm.py)
+- 智能体实例：[src/agents/agents.py](mdc:src/agents/agents.py)
+
+## 工作流模式
+
+### 典型工作流程
+1. **任务接收** - Coordinator 接收用户任务
+2. **任务规划** - Planner 分解任务并制定计划
+3. **信息收集** - Researcher 进行网络搜索和数据收集
+4. **代码执行** - Coder 执行Python代码和数据处理
+5. **网页交互** - Browser 进行网页操作和信息提取
+6. **结果汇总** - Reporter 整理结果并生成报告
+
+### 条件路由逻辑
+```python
+# 示例：基于任务类型的路由
+def route_by_task_type(state):
+    if state["task_type"] == "research":
+        return "researcher"
+    elif state["task_type"] == "coding":
+        return "coder"
+    elif state["task_type"] == "web_interaction":
+        return "browser"
+    else:
+        return "coordinator"
+```
+
+## 工具集成
+
+### 工具类型
+- **搜索工具**: [src/tools/search.py](mdc:src/tools/search.py)
+- **浏览器工具**: [src/tools/browser.py](mdc:src/tools/browser.py)
+- **Python执行**: [src/tools/python_repl.py](mdc:src/tools/python_repl.py)
+
+### 工具绑定
+- 每个智能体可以绑定特定的工具集
+- 工具调用通过LangChain的工具接口实现
+- 支持异步工具调用和错误处理
+
+## 开发最佳实践
+
+### 新节点开发
+1. 在 [src/graph/nodes.py](mdc:src/graph/nodes.py) 中定义节点函数
+2. 实现状态处理和错误管理
+3. 在 [src/graph/builder.py](mdc:src/graph/builder.py) 中注册节点
+4. 配置节点间的连接关系
+
+### 状态设计原则
+- 保持状态结构的一致性
+- 使用类型提示明确状态字段
+- 实现状态的增量更新而非完全替换
+- 提供状态验证和清理机制
+
+### 错误处理
+- 在每个节点中实现适当的错误捕获
+- 提供有意义的错误信息和恢复建议
+- 支持工作流的优雅降级和重试机制
+
+### 调试和监控
+- 使用适当的日志记录跟踪工作流执行
+- 实现状态检查点便于调试
+- 提供工作流可视化和性能监控
+
+## 扩展开发
+
+### 添加新智能体
+1. 在 [src/agents/agents.py](mdc:src/agents/agents.py) 中定义智能体
+2. 配置智能体的LLM和工具绑定
+3. 在工作流图中添加对应节点
+4. 实现智能体的提示词模板
+
+### 自定义工具开发
+1. 在 [src/tools/](mdc:src/tools/) 中创建工具模块
+2. 继承LangChain的BaseTool类
+3. 实现工具的核心功能和错误处理
+4. 将工具绑定到相应的智能体
+
+### 工作流优化
+- 分析工作流的执行路径和性能瓶颈
+- 优化智能体间的协作效率
+- 实现智能的任务分发和负载均衡
+- 提供工作流的配置化和参数化能力

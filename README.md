@@ -1,339 +1,320 @@
-# LangManus
+# FusionAI
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [English](./README.md) | [简体中文](./README_zh.md)
 
-> Come From Open Source, Back to Open Source
+> 源于开源，回馈开源
 
-LangManus is a community-driven AI automation framework that builds upon the incredible work of the open source community. Our goal is to combine language models with specialized tools for tasks like web search, crawling, and Python code execution, while giving back to the community that made this possible.
+FusionAI 是一个社区驱动的 AI 自动化框架，由湖北福鑫科创信息技术有限公司研发。它建立在开源社区的卓越工作基础之上。我们的目标是将语言模型与专业工具（如网络搜索、爬虫和 Python 代码执行）相结合，同时回馈让这一切成为可能的社区。
 
-## Demo Video
+## 演示视频
 
-> **Task**: Calculate the influence index of DeepSeek R1 on HuggingFace. This index can be designed by considering a weighted sum of factors such as followers, downloads, and likes.
+> **任务**：计算 DeepSeek R1 在 HuggingFace 上的影响力指数。该指数可以通过考虑粉丝、下载量和点赞数等权重因素来设计。
 
 [![Demo](./assets/demo.gif)](./assets/demo.mp4)
 
-- [View on YouTube](https://youtu.be/sZCHqrQBUGk)
-- [Download Video](https://github.com/langmanus/langmanus/blob/main/assets/demo.mp4)
+- [在 YouTube 上观看](https://youtu.be/sZCHqrQBUGk)
+- [下载视频](https://github.com/fusionai/fusionai/blob/main/assets/demo.mp4)
 
-## Table of Contents
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Why LangManus?](#why-langmanus)
-- [Setup](#setup)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Configuration](#configuration)
-- [Usage](#usage)
-- [Web UI](#web-ui)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+## 目录
+- [快速开始](#快速开始)
+- [架构](#架构)
+- [功能特性](#功能特性)
+- [为什么选择 FusionAI？](#为什么选择-fusionai)
+- [安装设置](#安装设置)
+    - [前置要求](#前置要求)
+    - [安装步骤](#安装步骤)
+    - [配置](#配置)
+- [使用方法](#使用方法)
+- [网页界面](#网页界面)
+- [开发](#开发)
+- [贡献](#贡献)
+- [许可证](#许可证)
+- [致谢](#致谢)
+- [API 服务器](#api-服务器)
 
-## Quick Start
+## 快速开始
 
 ```bash
-# Clone the repository
-git clone https://github.com/langmanus/langmanus.git
-cd langmanus
+# 克隆仓库
+git clone https://github.com/fusionai/fusionai.git
+cd fusionai
 
-# Create and activate virtual environment through uv
+# 用uv创建并激活虚拟环境
 uv python install 3.12
 uv venv --python 3.12
 
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows系统使用: .venv\Scripts\activate
 
-# Install dependencies
+# 安装依赖
 uv sync
 
-# Configure environment
+# 配置环境
 cp .env.example .env
-# Edit .env with your API keys
+# 编辑 .env 文件，填入你的 API 密钥
 
-# Run the project
+# 运行项目
 uv run main.py
 ```
 
-## Architecture
+## 架构
 
-LangManus implements a hierarchical multi-agent system where a supervisor coordinates specialized agents to accomplish complex tasks:
+FusionAI 实现了一个分层的多智能体系统，其中有一个主管智能体协调专门的智能体来完成复杂任务：
 
-![LangManus Architecture](./assets/architecture.png)
+![FusionAI 架构](./assets/architecture.png)
 
-The system consists of the following agents working together:
+系统由以下智能体协同工作：
 
-1. **Coordinator** - The entry point that handles initial interactions and routes tasks
-2. **Planner** - Analyzes tasks and creates execution strategies
-3. **Supervisor** - Oversees and manages the execution of other agents
-4. **Researcher** - Gathers and analyzes information
-5. **Coder** - Handles code generation and modifications
-6. **Browser** - Performs web browsing and information retrieval
-7. **Reporter** - Generates reports and summaries of the workflow results
+1. **协调员（Coordinator）**：工作流程的入口点，处理初始交互并路由任务
+2. **规划员（Planner）**：分析任务并制定执行策略
+3. **主管（Supervisor）**：监督和管理其他智能体的执行
+4. **研究员（Researcher）**：收集和分析信息
+5. **程序员（Coder）**：负责代码生成和修改
+6. **浏览器（Browser）**：执行网页浏览和信息检索
+7. **汇报员（Reporter）**：生成工作流结果的报告和总结
 
-## Features
+## 功能特性
 
-### Core Capabilities
-- 🤖 **LLM Integration**
-    - Support for open source models like Qwen
-    - OpenAI-compatible API interface
-    - Multi-tier LLM system for different task complexities
+### 核心能力
+- 🤖 **LLM 集成**
+    - 支持通义千问等开源模型
+    - OpenAI 兼容的 API 接口
+    - 多层 LLM 系统适配不同任务复杂度
 
-### Tools and Integrations
-- 🔍 **Search and Retrieval**
-    - Web search via Tavily API
-    - Neural search with Jina
-    - Advanced content extraction
+### 工具和集成
+- 🔍 **搜索和检索**
+    - 通过 Tavily API 进行网络搜索
+    - 使用 Jina 进行神经搜索
+    - 高级内容提取
 
-### Development Features
-- 🐍 **Python Integration**
-    - Built-in Python REPL
-    - Code execution environment
-    - Package management with uv
+### 开发特性
+- 🐍 **Python 集成**
+    - 内置 Python REPL
+    - 代码执行环境
+    - 使用 uv 进行包管理
 
-### Workflow Management
-- 📊 **Visualization and Control**
-    - Workflow graph visualization
-    - Multi-agent orchestration
-    - Task delegation and monitoring
+### 工作流管理
+- 📊 **可视化和控制**
+    - 工作流程图可视化
+    - 多智能体编排
+    - 任务分配和监控
 
-## Why LangManus?
+## 为什么选择 FusionAI？
 
-We believe in the power of open source collaboration. This project wouldn't be possible without the amazing work of projects like:
-- [Qwen](https://github.com/QwenLM/Qwen) for their open source LLMs
-- [Tavily](https://tavily.com/) for search capabilities
-- [Jina](https://jina.ai/) for neural search technology
-- And many other open source contributors
+我们信奉开源协作的力量。本项目的实现离不开以下优秀项目的支持：
+- [Qwen](https://github.com/QwenLM/Qwen)：提供开源语言模型
+- [Tavily](https://tavily.com/)：提供搜索能力
+- [Jina](https://jina.ai/)：提供神经搜索技术
+- 以及众多其他开源贡献者
 
-We're committed to giving back to the community and welcome contributions of all kinds - whether it's code, documentation, bug reports, or feature suggestions.
+我们致力于回馈社区，欢迎各种形式的贡献——无论是代码、文档、问题报告还是功能建议。
 
-## Setup
+## 安装设置
 
-### Prerequisites
+### 前置要求
 
 - Python 3.12+
-- API keys for LLM services (OpenAI, DeepSeek, etc.)
-- Tavily API key for web search
-- Firecrawl API key for web crawling (required)
+- API 密钥用于 LLM 服务（OpenAI、DeepSeek 等）
+- Tavily API 密钥用于网络搜索
+- Firecrawl API 密钥用于网页爬取（必需）
 
-### Installation
+### 安装步骤
 
-LangManus leverages [uv](https://github.com/astral-sh/uv) as its package manager to streamline dependency management.
-Follow the steps below to set up a virtual environment and install the necessary dependencies:
+FusionAI 使用 [uv](https://github.com/astral-sh/uv) 作为包管理器以简化依赖管理。
+按照以下步骤设置虚拟环境并安装必要的依赖：
 
 ```bash
-# Step 1: Create and activate a virtual environment through uv
+# 步骤 1：用uv创建并激活虚拟环境
 uv python install 3.12
 uv venv --python 3.12
 
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows系统使用: .venv\Scripts\activate
 
-# Step 2: Install project dependencies
+# 步骤 2：安装项目依赖
 uv sync
 ```
 
-By completing these steps, you'll ensure your environment is properly configured and ready for development.
+完成这些步骤后，您将确保环境配置正确并准备好进行开发。
 
-### Configuration
+### 配置
 
-LangManus uses a three-tier LLM system with separate configurations for reasoning, basic tasks, and vision-language tasks. Create a `.env` file in the project root and configure the following environment variables:
+FusionAI 使用三层 LLM 系统，分别用于推理、基础任务和视觉语言任务。在项目根目录创建 `.env` 文件并配置以下环境变量：
 
 ```ini
-# Reasoning LLM Configuration (for complex reasoning tasks)
+# 推理 LLM 配置（用于复杂推理任务）
 REASONING_MODEL=your_reasoning_model
 REASONING_API_KEY=your_reasoning_api_key
-REASONING_BASE_URL=your_custom_base_url  # Optional
+REASONING_BASE_URL=your_custom_base_url  # 可选
 
-# Basic LLM Configuration (for simpler tasks)
+# 基础 LLM 配置（用于简单任务）
 BASIC_MODEL=your_basic_model
 BASIC_API_KEY=your_basic_api_key
-BASIC_BASE_URL=your_custom_base_url  # Optional
+BASIC_BASE_URL=your_custom_base_url  # 可选
 
-# Vision-Language LLM Configuration (for tasks involving images)
+# 视觉语言 LLM 配置（用于涉及图像的任务）
 VL_MODEL=your_vl_model
 VL_API_KEY=your_vl_api_key
-VL_BASE_URL=your_custom_base_url  # Optional
+VL_BASE_URL=your_custom_base_url  # 可选
 
-# Tool API Keys
+# 工具 API 密钥
 TAVILY_API_KEY=your_tavily_api_key
 FIRECRAWL_API_KEY=your_firecrawl_api_key
 
-# Browser Configuration
-CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # Optional, path to Chrome executable
+# 浏览器配置
+CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # 可选，Chrome 可执行文件路径
 ```
 
-> **Note:**
+> **注意：**
 >
-> - The system uses different models for different types of tasks:
->     - Reasoning LLM for complex decision-making and analysis
->     - Basic LLM for simpler text-based tasks
->     - Vision-Language LLM for tasks involving image understanding
-> - You can customize the base URLs for all LLMs independently
-> - Each LLM can use different API keys if needed
-> - Firecrawl API key is required for web content extraction (get your API key at [firecrawl.dev](https://www.firecrawl.dev/app/usage))
-> - Tavily search is configured to return a maximum of 5 results by default (get your API key at [app.tavily.com](https://app.tavily.com/))
+> - 系统为不同类型的任务使用不同的模型：
+>     - 推理 LLM 用于复杂的决策制定和分析
+>     - 基础 LLM 用于较简单的基于文本的任务
+>     - 视觉语言 LLM 用于涉及图像理解的任务
+> - 你可以为所有 LLM 独立自定义基础 URL
+> - 如果需要，每个 LLM 可以使用不同的 API 密钥
+> - Firecrawl API 密钥是必需的，用于网页内容提取（在 [firecrawl.dev](https://www.firecrawl.dev/app/usage) 获取 API 密钥）
+> - Tavily 搜索默认配置为返回最多 5 个结果（在 [app.tavily.com](https://app.tavily.com/) 获取 API 密钥）
 
-You can copy the `.env.example` file as a template to get started:
+您可以复制 `.env.example` 文件作为模板开始：
 
 ```bash
 cp .env.example .env
 ```
 
-### Configure Pre-commit Hook
-LangManus includes a pre-commit hook that runs linting and formatting checks before each commit. To set it up:
+### 配置预提交钩子
+FusionAI 包含一个预提交钩子，在每次提交前运行代码检查和格式化。设置步骤：
 
-1. Make the pre-commit script executable:
+1. 使预提交脚本可执行：
 ```bash
 chmod +x pre-commit
 ```
 
-2. Install the pre-commit hook:
+2. 安装预提交钩子：
 ```bash
 ln -s ../../pre-commit .git/hooks/pre-commit
 ```
 
-The pre-commit hook will automatically:
-- Run linting checks (`make lint`)
-- Run code formatting (`make format`)
-- Add any reformatted files back to staging
-- Prevent commits if there are any linting or formatting errors
+预提交钩子将自动：
+- 运行代码检查（`make lint`）
+- 运行代码格式化（`make format`）
 
-## Usage
+## 使用方法
 
-### Basic Execution
+### 基本执行
 
-To run LangManus with default settings:
+使用默认设置运行 FusionAI：
 
 ```bash
 uv run main.py
 ```
 
-### API Server
+### API 服务器
 
-LangManus provides a FastAPI-based API server with streaming support:
+FusionAI 提供基于 FastAPI 的 API 服务器，支持流式响应：
 
 ```bash
-# Start the API server
+# 启动 API 服务器
 make serve
 
-# Or run directly
+# 或直接运行
 uv run server.py
 ```
 
-The API server exposes the following endpoints:
+API 服务器提供以下端点：
 
-- `POST /api/chat/stream`: Chat endpoint for LangGraph invoke with streaming support
-    - Request body:
+- `POST /api/chat/stream`：用于 LangGraph 调用的聊天端点，流式响应
+    - 请求体：
     ```json
     {
       "messages": [
-        {"role": "user", "content": "Your query here"}
+        {"role": "user", "content": "在此输入您的查询"}
       ],
       "debug": false
     }
     ```
-    - Returns a Server-Sent Events (SSE) stream with the agent's responses
+    - 返回包含智能体响应的服务器发送事件（SSE）流
 
-### Advanced Configuration
+### 高级配置
 
-LangManus can be customized through various configuration files in the `src/config` directory:
-- `env.py`: Configure LLM models, API keys, and base URLs
-- `tools.py`: Adjust tool-specific settings (e.g., Tavily search results limit)
-- `agents.py`: Modify team composition and agent system prompts
+FusionAI 可以通过 `src/config` 目录中的各种配置文件进行自定义：
+- `env.py`：配置 LLM 模型、API 密钥和基础 URL
+- `tools.py`：调整工具特定设置（如 Tavily 搜索结果限制）
+- `agents.py`：修改团队组成和智能体系统提示
 
-### Agent Prompts System
+### 智能体提示系统
 
-LangManus uses a sophisticated prompting system in the `src/prompts` directory to define agent behaviors and responsibilities:
+FusionAI 在 `src/prompts` 目录中使用复杂的提示系统来定义智能体的行为和职责：
 
-#### Core Agent Roles
+#### 核心智能体角色
 
-- **Supervisor ([`src/prompts/supervisor.md`](src/prompts/supervisor.md))**: Coordinates the team and delegates tasks by analyzing requests and determining which specialist should handle them. Makes decisions about task completion and workflow transitions.
+- **主管（[`src/prompts/supervisor.md`](src/prompts/supervisor.md)）**：通过分析请求并确定由哪个专家处理来协调团队并分配任务。负责决定任务完成情况和工作流转换。
 
-- **Researcher ([`src/prompts/researcher.md`](src/prompts/researcher.md))**: Specializes in information gathering through web searches and data collection. Uses Tavily search and web crawling capabilities while avoiding mathematical computations or file operations.
+- **研究员（[`src/prompts/researcher.md`](src/prompts/researcher.md)）**：专门通过网络搜索和数据收集来收集信息。使用 Tavily 搜索和网络爬取功能，避免数学计算或文件操作。
 
-- **Coder ([`src/prompts/coder.md`](src/prompts/coder.md))**: Professional software engineer role focused on Python and bash scripting. Handles:
-    - Python code execution and analysis
-    - Shell command execution
-    - Technical problem-solving and implementation
+- **程序员（[`src/prompts/coder.md`](src/prompts/coder.md)）**：专业软件工程师角色，专注于 Python 和 bash 脚本。处理：
+    - Python 代码执行和分析
+    - Shell 命令执行
+    - 技术问题解决和实现
 
-- **File Manager ([`src/prompts/file_manager.md`](src/prompts/file_manager.md))**: Handles all file system operations with a focus on properly formatting and saving content in markdown format.
+- **文件管理员（[`src/prompts/file_manager.md`](src/prompts/file_manager.md)）**：处理所有文件系统操作，重点是正确格式化和保存 markdown 格式的内容。
 
-- **Browser ([`src/prompts/browser.md`](src/prompts/browser.md))**: Web interaction specialist that handles:
-    - Website navigation
-    - Page interaction (clicking, typing, scrolling)
-    - Content extraction from web pages
+- **浏览器（[`src/prompts/browser.md`](src/prompts/browser.md)）**：网络交互专家，处理：
+    - 网站导航
+    - 页面交互（点击、输入、滚动）
+    - 从网页提取内容
 
-#### Prompt System Architecture
+#### 提示系统架构
 
-The prompts system uses a template engine ([`src/prompts/template.py`](src/prompts/template.py)) that:
-- Loads role-specific markdown templates
-- Handles variable substitution (e.g., current time, team member information)
-- Formats system prompts for each agent
+提示系统使用模板引擎（[`src/prompts/template.py`](src/prompts/template.py)）来：
+- 加载特定角色的 markdown 模板
+- 处理变量替换（如当前时间、团队成员信息）
+- 为每个智能体格式化系统提示
 
-Each agent's prompt is defined in a separate markdown file, making it easy to modify behavior and responsibilities without changing the underlying code.
+每个智能体的提示都在单独的 markdown 文件中定义，这样无需更改底层代码就可以轻松修改行为和职责。
 
-## Web UI
+## 网页界面
 
-LangManus provides a default web UI.
+FusionAI 提供一个默认的网页界面。
 
-Please refer to the [langmanus/langmanus-web-ui](https://github.com/langmanus/langmanus-web) project for more details.
+请参考 [fusionai/fusionai-web](https://github.com/fusionai/fusionai-web) 项目了解更多信息。
 
-## Development
+## 开发
 
-### Testing
+### 测试
 
-Run the test suite:
+运行测试套件：
 
 ```bash
-# Run all tests
+# 运行所有测试
 make test
 
-# Run specific test file
+# 运行特定测试文件
 pytest tests/integration/test_workflow.py
 
-# Run with coverage
+# 运行覆盖率测试
 make coverage
 ```
 
-### Code Quality
+### 代码质量
 
 ```bash
-# Run linting
+# 运行代码检查
 make lint
 
-# Format code
+# 格式化代码
 make format
 ```
 
-## Contributing
+## 贡献
 
-We welcome contributions of all kinds! Whether you're fixing a typo, improving documentation, or adding a new feature, your help is appreciated. Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
+我们欢迎各种形式的贡献！无论是修复错别字、改进文档，还是添加新功能，您的帮助都将备受感激。请查看我们的[贡献指南](CONTRIBUTING.md)了解如何开始。
 
-## License
+## 许可证
 
-This project is open source and available under the [MIT License](LICENSE).
+本项目是开源的，基于 [MIT 许可证](LICENSE)。
 
-## Acknowledgments
+## 致谢
 
-Special thanks to all the open source projects and contributors that make LangManus possible. We stand on the shoulders of giants.
-
-### Key Features
-
-This system implements a sophisticated multi-agent workflow:
-
-1. **Planner Agent** - Creates detailed execution plans for complex tasks
-2. **Researcher Agent** - Gathers information from the internet using advanced search and crawling
-3. **Coder Agent** - Executes Python code, performs calculations, and handles data analysis
-4. **Reporter Agent** - Synthesizes information into comprehensive reports
-5. **Coordinator** - Manages the overall workflow and agent interactions
-
-### Technologies Used
-
-- [LangChain](https://langchain.com/) for LLM integration and tool management
-- [LangGraph](https://langgraph.dev/) for multi-agent workflow orchestration
-- [Tavily](https://tavily.com/) for intelligent web search
-- [Firecrawl](https://www.firecrawl.dev/) for high-quality web content extraction
-- [FastAPI](https://fastapi.tiangolo.com/) for the REST API backend
+特别感谢所有让 FusionAI 成为可能的开源项目和贡献者。我们站在巨人的肩膀上。

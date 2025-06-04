@@ -1,0 +1,70 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 测试和代码质量规则
+
+## 测试框架
+
+FusionAI 使用 pytest 作为主要测试框架，配置在 [pyproject.toml](mdc:pyproject.toml) 中。
+
+### 测试结构
+- **[tests/](mdc:tests)** - 测试代码目录
+- 测试文件命名：`test_*.py`
+- 测试覆盖率：使用 `pytest-cov`
+
+### 运行测试
+```bash
+# 运行所有测试
+pytest
+
+# 运行带覆盖率的测试
+pytest --cov=src --cov-report=term-missing
+
+# 运行特定测试文件
+pytest tests/test_agents.py
+```
+
+## 代码质量工具
+
+### 代码格式化
+- 使用 **Black** 进行代码格式化
+- 配置：88字符行长度，Python 3.12目标版本
+- 运行：`black src/ tests/`
+
+### Linting
+- 使用 Makefile 中定义的 lint 目标
+- 预提交钩子：[pre-commit](mdc:pre-commit)
+
+### 预提交检查
+```bash
+# 设置预提交钩子
+chmod +x pre-commit
+ln -s ../../pre-commit .git/hooks/pre-commit
+```
+
+## 开发最佳实践
+
+### 代码组织
+1. **智能体开发** - 在 [src/agents/](mdc:src/agents) 中添加新智能体
+2. **工具开发** - 在 [src/tools/](mdc:src/tools) 中添加新工具
+3. **配置管理** - 使用 [src/config/](mdc:src/config) 进行环境配置
+
+### 依赖管理
+- 使用 `uv` 管理 Python 依赖
+- 锁定文件：[uv.lock](mdc:uv.lock)
+- 添加依赖：`uv add package_name`
+- 同步依赖：`uv sync`
+
+### 错误处理
+1. 使用适当的异常类型
+2. 提供有意义的错误消息
+3. 在智能体中实现容错机制
+4. 记录关键操作和错误
+
+### 性能考虑
+1. **LLM调用优化** - 使用三层LLM系统（推理/基础/视觉）
+2. **并发处理** - 在适当时使用异步操作
+3. **资源管理** - 正确管理浏览器实例和API连接
+4. **缓存策略** - 缓存重复的搜索和API调用结果

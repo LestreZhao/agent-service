@@ -1,0 +1,222 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 数据处理和分析规则
+
+## 数据处理框架
+
+FusionAI 集成多种数据处理和分析工具，支持复杂的数据驱动任务。
+
+### 主要数据处理库
+- **pandas**: 数据操作和分析
+- **numpy**: 数值计算和数组操作
+- **yfinance**: 金融数据获取
+- **cx_Oracle**: Oracle数据库连接
+
+## Python执行环境
+
+### Python REPL工具
+- 主要文件：[src/tools/python_repl.py](mdc:src/tools/python_repl.py)
+- 支持实时Python代码执行
+- 提供数据处理和可视化能力
+
+### 代码执行安全
+```python
+# 安全的代码执行环境
+SAFE_EXECUTION_RULES = {
+    "禁止文件系统操作": ["os.remove", "shutil.rmtree"],
+    "禁止网络操作": ["urllib", "requests"],
+    "禁止系统命令": ["subprocess", "os.system"],
+    "允许数据处理": ["pandas", "numpy", "matplotlib"]
+}
+```
+
+### 内存和性能管理
+- 限制大数据集的内存使用
+- 使用分块处理处理大文件
+- 实现数据流式处理
+
+## 数据获取和清理
+
+### 网络数据源
+1. **搜索引擎**: 通过Tavily API获取网络数据
+2. **网页抓取**: 使用Firecrawl提取结构化数据
+3. **API接口**: 集成各种数据API服务
+4. **金融数据**: 使用yfinance获取股票和市场数据
+
+### 数据清理流程
+```python
+# 标准数据清理pipeline
+def clean_data_pipeline(data):
+    # 1. 处理缺失值
+    data = handle_missing_values(data)
+    
+    # 2. 数据类型转换
+    data = convert_data_types(data)
+    
+    # 3. 异常值检测和处理
+    data = handle_outliers(data)
+    
+    # 4. 数据标准化
+    data = normalize_data(data)
+    
+    return data
+```
+
+### 数据验证
+- 数据完整性检查
+- 数据格式验证
+- 数据质量评估
+- 异常数据标识
+
+## 数据分析模式
+
+### 探索性数据分析 (EDA)
+```python
+# EDA标准流程
+EDA_STEPS = [
+    "数据概览和基本统计",
+    "数据分布分析",
+    "相关性分析", 
+    "缺失值模式分析",
+    "异常值检测",
+    "数据可视化"
+]
+```
+
+### 统计分析方法
+- 描述性统计分析
+- 假设检验
+- 回归分析
+- 时间序列分析
+- 聚类分析
+
+### 数据可视化
+- 使用matplotlib/seaborn创建图表
+- 交互式可视化
+- 仪表板和报告生成
+- 数据故事叙述
+
+## 金融数据处理
+
+### yfinance集成
+```python
+# 金融数据获取示例
+import yfinance as yf
+
+def get_stock_data(symbol, period="1y"):
+    stock = yf.Ticker(symbol)
+    hist = stock.history(period=period)
+    info = stock.info
+    return hist, info
+```
+
+### 金融指标计算
+- 技术指标计算
+- 风险指标评估
+- 收益率分析
+- 波动率计算
+
+### 市场数据分析
+- 股票价格分析
+- 市场趋势识别
+- 投资组合分析
+- 风险评估
+
+## 数据库集成
+
+### Oracle数据库连接
+- 使用cx_Oracle库连接Oracle数据库
+- 支持复杂SQL查询执行
+- 数据批量导入导出
+
+### 数据库操作最佳实践
+```python
+# 安全的数据库连接模式
+def safe_db_connection():
+    try:
+        connection = cx_Oracle.connect(
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            dsn=os.getenv('DB_DSN')
+        )
+        return connection
+    except cx_Oracle.Error as error:
+        logging.error(f"数据库连接失败: {error}")
+        return None
+```
+
+## 数据存储和缓存
+
+### 数据持久化
+- 支持多种数据格式：CSV、JSON、Parquet
+- 数据版本控制和备份
+- 增量数据更新机制
+
+### 缓存策略
+- 内存缓存热点数据
+- 磁盘缓存大数据集
+- 分布式缓存支持
+- 缓存失效和更新机制
+
+## 性能优化
+
+### 数据处理优化
+```python
+# 性能优化技巧
+OPTIMIZATION_TECHNIQUES = {
+    "向量化操作": "使用numpy/pandas的向量化功能",
+    "并行处理": "使用multiprocessing进行并行计算",
+    "内存优化": "使用适当的数据类型减少内存使用",
+    "分块处理": "处理大数据集时使用分块策略"
+}
+```
+
+### 计算资源管理
+- CPU密集型任务优化
+- 内存使用监控
+- 磁盘IO优化
+- 网络传输优化
+
+## 错误处理和监控
+
+### 数据处理错误处理
+- 数据格式错误处理
+- 计算异常捕获
+- 资源泄漏防护
+- 优雅的降级处理
+
+### 数据质量监控
+```python
+# 数据质量检查
+def check_data_quality(df):
+    quality_report = {
+        "总行数": len(df),
+        "缺失值比例": df.isnull().sum() / len(df),
+        "重复行数": df.duplicated().sum(),
+        "数据类型": df.dtypes.to_dict()
+    }
+    return quality_report
+```
+
+## 开发最佳实践
+
+### 数据处理代码规范
+1. **函数式编程**: 使用纯函数处理数据转换
+2. **管道模式**: 构建数据处理管道
+3. **单元测试**: 为数据处理函数编写测试
+4. **文档化**: 记录数据来源和处理逻辑
+
+### 数据安全和隐私
+- 敏感数据脱敏处理
+- 数据访问权限控制
+- 数据传输加密
+- 数据保留策略
+
+### 可重现性
+- 固定随机种子
+- 版本控制数据和代码
+- 环境依赖记录
+- 数据处理流程文档化

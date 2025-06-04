@@ -1,5 +1,7 @@
 """
-FastAPI application for LangManus.
+FastAPI application for FusionAI.
+
+This module defines the FastAPI application for the FusionAI LangGraph-based agent workflow.
 """
 
 import json
@@ -22,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
-    title="LangManus API",
-    description="API for LangManus LangGraph-based agent workflow",
+    title="FusionAI API",
+    description="API for FusionAI LangGraph-based agent workflow",
     version="0.1.0",
 )
 
