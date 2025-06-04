@@ -18,6 +18,7 @@ from typing import AsyncGenerator, Dict, List, Any
 from src.graph import build_graph
 from src.config import TEAM_MEMBERS
 from src.service.workflow_service import run_agent_workflow
+from .document_routes import router as document_router
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title="FusionAI API",
-    description="API for FusionAI LangGraph-based agent workflow",
+    description="API for FusionAI LangGraph-based agent workflow with document processing capabilities",
     version="0.1.0",
 )
 
@@ -37,6 +38,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+# Include document router
+app.include_router(document_router, prefix="/api")
 
 # Create the graph
 graph = build_graph()

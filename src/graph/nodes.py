@@ -6,11 +6,9 @@ from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from langgraph.graph import END
 
-from src.agents import research_agent, coder_agent, browser_agent, db_analyst_agent
 from src.agents.llm import get_llm_by_type
 from src.config import TEAM_MEMBERS
 from src.config.agents import AGENT_LLM_MAP
-from src.prompts.template import apply_prompt_template
 from src.tools.search import tavily_tool
 from .types import State, Router
 
@@ -21,6 +19,7 @@ RESPONSE_FORMAT = "Response from {}:\n\n<response>\n{}\n</response>\n\n*Please e
 
 def research_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the researcher agent that performs research tasks."""
+    from src.agents import research_agent
     logger.info("Research agent starting task")
     result = research_agent.invoke(state)
     logger.info("Research agent completed task")
@@ -42,6 +41,7 @@ def research_node(state: State) -> Command[Literal["supervisor"]]:
 
 def code_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the coder agent that executes Python code."""
+    from src.agents import coder_agent
     logger.info("Code agent starting task")
     result = coder_agent.invoke(state)
     logger.info("Code agent completed task")
@@ -63,6 +63,7 @@ def code_node(state: State) -> Command[Literal["supervisor"]]:
 
 def browser_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the browser agent that performs web browsing tasks."""
+    from src.agents import browser_agent
     logger.info("Browser agent starting task")
     result = browser_agent.invoke(state)
     logger.info("Browser agent completed task")
@@ -84,6 +85,7 @@ def browser_node(state: State) -> Command[Literal["supervisor"]]:
 
 def db_analyst_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the database analyst agent that performs database queries and analysis."""
+    from src.agents import db_analyst_agent
     logger.info("Database analyst agent starting task")
     result = db_analyst_agent.invoke(state)
     logger.info("Database analyst agent completed task")
@@ -103,8 +105,31 @@ def db_analyst_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+def document_parser_node(state: State) -> Command[Literal["supervisor"]]:
+    """Node for the document parser agent that processes and analyzes documents."""
+    from src.agents import document_parser_agent
+    logger.info("Document parser agent starting task")
+    result = document_parser_agent.invoke(state)
+    logger.info("Document parser agent completed task")
+    logger.debug(f"Document parser agent response: {result['messages'][-1].content}")
+    return Command(
+        update={
+            "messages": [
+                HumanMessage(
+                    content=RESPONSE_FORMAT.format(
+                        "document_parser", result["messages"][-1].content
+                    ),
+                    name="document_parser",
+                )
+            ]
+        },
+        goto="supervisor",
+    )
+
+
 def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     """Supervisor node that decides which agent should act next."""
+    from src.prompts.template import apply_prompt_template
     logger.info("Supervisor evaluating next action")
     messages = apply_prompt_template("supervisor", state)
     response = (
@@ -127,6 +152,7 @@ def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
 
 def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     """Planner node that generate the full plan."""
+    from src.prompts.template import apply_prompt_template
     logger.info("Planner generating full plan")
     messages = apply_prompt_template("planner", state)
     # whether to enable deep thinking mode
@@ -170,6 +196,7 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
 
 def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
     """Coordinator node that communicate with customers."""
+    from src.prompts.template import apply_prompt_template
     logger.info("Coordinator talking.")
     messages = apply_prompt_template("coordinator", state)
     response = get_llm_by_type(AGENT_LLM_MAP["coordinator"]).invoke(messages)
@@ -187,6 +214,7 @@ def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
 
 def reporter_node(state: State) -> Command[Literal["supervisor"]]:
     """Reporter node that write a final report."""
+    from src.prompts.template import apply_prompt_template
     logger.info("Reporter write final report")
     messages = apply_prompt_template("reporter", state)
     response = get_llm_by_type(AGENT_LLM_MAP["reporter"]).invoke(messages)

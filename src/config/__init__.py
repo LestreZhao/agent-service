@@ -18,7 +18,7 @@ from .env import (
 from .tools import TAVILY_MAX_RESULTS
 
 # Team configuration - 临时禁用 browser 智能体以避免浏览器启动问题
-TEAM_MEMBERS = ["researcher", "coder", "reporter", "db_analyst"]  # 添加 db_analyst
+TEAM_MEMBERS = ["researcher", "coder", "reporter", "db_analyst", "document_parser"]  # 添加 document_parser
 
 __all__ = [
     # Reasoning LLM

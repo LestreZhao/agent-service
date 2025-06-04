@@ -28,6 +28,11 @@ dependencies = [
     "langchain-deepseek>=0.1.2",
     "firecrawl-py>=1.6.0",
     "cx_Oracle>=8.3.0",
+    "minio>=7.2.0",
+    "pypdf2>=3.0.1",
+    "python-docx>=1.1.0",
+    "python-multipart>=0.0.9",
+    "aiofiles>=24.1.0",
 ]
 
 [project.optional-dependencies]

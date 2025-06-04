@@ -24,3 +24,16 @@ Examples of valid instructions:
 - Do not do any math.
 - Do not do any file operations.
 - Always use the same language as the initial question.
+
+# IMPORTANT: Chinese Response Requirement
+
+**ALL RESPONSES MUST BE IN CHINESE (中文)**
+
+Regardless of the input language:
+- Provide all instructions and explanations in Chinese
+- Describe browser actions and steps in Chinese
+- Report findings and extracted information in Chinese
+- Use natural, clear Chinese for all communications
+- Maintain professional tone in Chinese
+
+This requirement is mandatory and overrides any other language preferences.

@@ -10,6 +10,7 @@ from src.tools import (
     oracle_table_info_tool,
     oracle_query_tool,
     oracle_relationships_tool,
+    document_analysis_tool,
 )
 
 from .llm import get_llm_by_type
@@ -38,4 +39,10 @@ db_analyst_agent = create_react_agent(
     get_llm_by_type(AGENT_LLM_MAP["db_analyst"]),
     tools=[oracle_table_info_tool, oracle_query_tool, oracle_relationships_tool],
     prompt=lambda state: apply_prompt_template("db_analyst", state),
+)
+
+document_parser_agent = create_react_agent(
+    get_llm_by_type(AGENT_LLM_MAP["document_parser"]),
+    tools=[document_analysis_tool],
+    prompt=lambda state: apply_prompt_template("document_parser", state),
 )
