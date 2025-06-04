@@ -33,6 +33,11 @@ dependencies = [
     "python-docx>=1.1.0",
     "python-multipart>=0.0.9",
     "aiofiles>=24.1.0",
+    "graphviz>=0.20.3",
+    "matplotlib>=3.10.3",
+    "networkx>=3.5",
+    "plotly>=6.1.2",
+    "watchdog>=6.0.0",
 ]
 
 [project.optional-dependencies]

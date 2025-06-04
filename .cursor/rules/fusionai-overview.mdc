@@ -1,0 +1,113 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 项目概览
+
+## 项目简介
+FusionAI 是一个社区驱动的 AI 自动化框架，由湖北福鑫科创信息技术有限公司研发。该框架将语言模型与专业工具（如网络搜索、爬虫和 Python 代码执行）相结合，提供完整的AI自动化解决方案。
+
+## 核心技术栈
+- **Python 3.12+**: 主要开发语言
+- **LangChain**: 语言模型框架
+- **LangGraph**: 工作流编排
+- **FastAPI**: Web API框架
+- **Browser-use**: 浏览器自动化
+- **Firecrawl**: 网页爬虫
+- **Oracle DB**: 数据库支持
+
+## 项目结构
+
+### 核心模块
+- **[src/agents/](mdc:src/agents/)**: AI代理实现
+  - [agents.py](mdc:src/agents/agents.py): 代理核心逻辑
+  - [llm.py](mdc:src/agents/llm.py): 语言模型配置
+  
+- **[src/api/](mdc:src/api/)**: Web API接口
+  - [app.py](mdc:src/api/app.py): FastAPI应用主入口
+  - [document_routes.py](mdc:src/api/document_routes.py): 文档处理API路由
+  
+- **[src/tools/](mdc:src/tools/)**: 工具集合
+  - [document_tool.py](mdc:src/tools/document_tool.py): 文档处理工具
+  - [browser.py](mdc:src/tools/browser.py): 浏览器自动化
+  - [oracle_db.py](mdc:src/tools/oracle_db.py): Oracle数据库工具
+  - [crawl.py](mdc:src/tools/crawl.py): 网页爬虫工具
+  
+- **[src/graph/](mdc:src/graph/)**: LangGraph工作流
+- **[src/config/](mdc:src/config/)**: 配置管理
+- **[src/service/](mdc:src/service/)**: 业务服务层
+- **[src/crawler/](mdc:src/crawler/)**: 爬虫模块
+- **[src/prompts/](mdc:src/prompts/)**: Prompt模板
+
+### 配置文件
+- [pyproject.toml](mdc:pyproject.toml): 项目配置和依赖管理
+- [main.py](mdc:main.py): 主程序入口
+- [server.py](mdc:server.py): 服务器启动脚本
+
+### 开发工具
+- [Makefile](mdc:Makefile): 构建和开发任务
+- [tests/](mdc:tests/): 单元测试
+- [scripts/](mdc:scripts/): 辅助脚本
+
+## 开发原则
+
+### 代码质量
+- 使用 Black 进行代码格式化 (line-length=88)
+- 遵循 Python 3.12+ 语法标准
+- 编写全面的单元测试 (pytest + coverage)
+- 使用类型注解提高代码可读性
+
+### 架构设计
+- 模块化设计，职责分离
+- 工具类采用装饰器模式增强功能
+- API层与业务逻辑分离
+- 配置文件统一管理
+
+### 命名规范
+- 文件名使用小写下划线格式 (snake_case)
+- 类名使用大驼峰格式 (PascalCase)
+- 函数和变量使用小写下划线格式 (snake_case)
+- 常量使用大写下划线格式 (UPPER_CASE)
+
+## 关键文件引用
+
+- 项目配置: [pyproject.toml](mdc:pyproject.toml)
+- 主要工作流: [src/workflow.py](mdc:src/workflow.py)
+- API入口: [src/api/app.py](mdc:src/api/app.py)
+- 工具初始化: [src/tools/__init__.py](mdc:src/tools/__init__.py)
+- 代理初始化: [src/agents/__init__.py](mdc:src/agents/__init__.py)
+
+## 依赖工具集成
+
+### LangChain生态
+- langchain-community: 社区扩展
+- langchain-experimental: 实验性功能
+- langchain-openai: OpenAI集成
+- langchain-deepseek: DeepSeek模型支持
+
+### 数据处理
+- pandas: 数据分析
+- numpy: 数值计算
+- pypdf2: PDF处理
+- python-docx: Word文档处理
+
+### Web和爬虫
+- httpx: HTTP客户端
+- fastapi: Web框架
+- firecrawl-py: 网页爬虫
+- readabilipy: 网页内容提取
+
+## 开发环境
+- Python版本: >=3.12
+- 包管理: uv (推荐) 或 pip
+- 代码格式化: black
+- 测试框架: pytest
+- 版本控制: git
+
+## 扩展规则
+参考以下专门的规则文件获取详细指导：
+- [api-development.mdc](mdc:.cursor/rules/api-development.mdc): API开发规范
+- [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc): 工作流开发
+- [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc): 测试和质量保证
+- [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc): Python最佳实践

@@ -1,0 +1,228 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 工具集成指南
+
+## 工具架构概览
+FusionAI 框架提供了丰富的工具集，每个工具都遵循统一的接口设计和集成模式。所有工具位于 [src/tools/](mdc:src/tools/) 目录下。
+
+## 工具初始化
+所有工具通过 [src/tools/__init__.py](mdc:src/tools/__init__.py) 统一导出和管理。新增工具时必须在此文件中注册。
+
+## 核心工具详解
+
+### 1. 文档处理工具
+**主文件**: [document_tool.py](mdc:src/tools/document_tool.py)
+**解析器**: [document_parser.py](mdc:src/tools/document_parser.py)
+
+**功能**:
+- PDF文档解析和处理
+- Word文档处理
+- 文本提取和结构化
+- 文档内容搜索
+
+**集成模式**:
+```python
+from src.tools.document_tool import DocumentTool
+tool = DocumentTool()
+result = tool.process_document(file_path)
+```
+
+### 2. Oracle数据库工具
+**主文件**: [oracle_db.py](mdc:src/tools/oracle_db.py)
+
+**功能**:
+- Oracle数据库连接管理
+- SQL查询执行
+- 数据导入导出
+- 连接池管理
+
+**配置要求**:
+- 需要配置Oracle连接字符串
+- 支持环境变量配置
+- 自动连接池管理
+
+### 3. 浏览器自动化工具
+**主文件**: [browser.py](mdc:src/tools/browser.py)
+
+**功能**:
+- 基于browser-use的浏览器自动化
+- 网页交互和数据提取
+- 截图和页面分析
+- JavaScript执行
+
+**使用模式**:
+- 支持异步操作
+- 自动资源管理
+- 错误处理和重试机制
+
+### 4. 网页爬虫工具
+**主文件**: [crawl.py](mdc:src/tools/crawl.py)
+
+**功能**:
+- 基于Firecrawl的网页爬取
+- 内容清理和结构化
+- 批量爬取支持
+- 反爬虫策略
+
+### 5. Python REPL工具
+**主文件**: [python_repl.py](mdc:src/tools/python_repl.py)
+
+**功能**:
+- 安全的Python代码执行
+- 变量状态管理
+- 输出捕获和格式化
+- 执行时间限制
+
+### 6. 搜索工具
+**主文件**: [search.py](mdc:src/tools/search.py)
+
+**功能**:
+- 集成多种搜索引擎
+- 结果聚合和排序
+- 缓存机制
+- 搜索结果过滤
+
+### 7. Bash命令工具
+**主文件**: [bash_tool.py](mdc:src/tools/bash_tool.py)
+
+**功能**:
+- 安全的系统命令执行
+- 输出流处理
+- 错误码处理
+- 超时控制
+
+### 8. 文件管理工具
+**主文件**: [file_management.py](mdc:src/tools/file_management.py)
+
+**功能**:
+- 文件上传下载
+- 目录操作
+- 文件类型检测
+- 权限管理
+
+## 工具装饰器系统
+**主文件**: [decorators.py](mdc:src/tools/decorators.py)
+
+### 功能增强装饰器
+- **@error_handler**: 统一错误处理
+- **@timing**: 执行时间统计
+- **@retry**: 自动重试机制
+- **@cache**: 结果缓存
+- **@validate**: 输入验证
+
+### 使用示例
+```python
+from src.tools.decorators import error_handler, timing, retry
+
+@error_handler
+@timing
+@retry(max_attempts=3)
+def my_tool_function():
+    # 工具逻辑
+    pass
+```
+
+## 工具开发规范
+
+### 1. 类结构规范
+```python
+class MyTool:
+    def __init__(self, config: dict = None):
+        """初始化工具，接收配置参数"""
+        pass
+    
+    def execute(self, *args, **kwargs):
+        """主要执行方法"""
+        pass
+    
+    def validate_input(self, input_data):
+        """输入验证"""
+        pass
+    
+    def cleanup(self):
+        """资源清理"""
+        pass
+```
+
+### 2. 错误处理
+- 使用自定义异常类型
+- 提供详细的错误信息
+- 实现优雅降级机制
+- 记录错误日志
+
+### 3. 配置管理
+- 支持环境变量配置
+- 提供默认配置值
+- 配置验证机制
+- 敏感信息加密
+
+### 4. 资源管理
+- 实现上下文管理器
+- 自动资源清理
+- 连接池管理
+- 内存优化
+
+## 工具集成到Agent
+
+### LangChain工具集成
+```python
+from langchain.tools import Tool
+
+def create_langchain_tool(fusion_tool):
+    return Tool(
+        name=fusion_tool.__class__.__name__,
+        description=fusion_tool.__doc__,
+        func=fusion_tool.execute
+    )
+```
+
+### LangGraph节点集成
+工具可以直接作为LangGraph工作流的节点使用，参考 [src/graph/](mdc:src/graph/) 中的实现。
+
+## 性能优化
+
+### 1. 异步支持
+优先使用异步版本的工具，特别是I/O密集型操作：
+- 网络请求
+- 数据库操作
+- 文件读写
+
+### 2. 缓存策略
+- 结果缓存减少重复计算
+- 连接池减少连接开销
+- 配置缓存提升启动速度
+
+### 3. 资源限制
+- 设置合理的超时时间
+- 控制并发数量
+- 监控内存使用
+
+## 测试策略
+
+### 单元测试
+每个工具都应该有对应的单元测试文件在 [tests/](mdc:tests/) 目录下。
+
+### 集成测试
+测试工具间的协作和数据流转。
+
+### 性能测试
+关注关键工具的性能指标和资源消耗。
+
+## 故障排除
+
+### 常见问题
+1. **连接超时**: 检查网络配置和超时设置
+2. **权限错误**: 验证文件和系统权限
+3. **内存不足**: 优化数据处理批次大小
+4. **配置错误**: 检查环境变量和配置文件
+
+### 调试技巧
+- 启用详细日志记录
+- 使用调试装饰器
+- 分步骤验证数据流
+- 检查工具状态和资源使用情况
+
+参考 [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc) 获取更多故障排除指导。

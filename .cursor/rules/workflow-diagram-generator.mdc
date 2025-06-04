@@ -1,0 +1,241 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FusionAI 智能体工作流图生成器规则
+
+## 工具概述
+
+[scripts/generate_workflow_diagram.py](mdc:scripts/generate_workflow_diagram.py) 是专门为FusionAI项目创建的智能体工作流可视化工具。
+
+### 主要功能
+
+1. **自动分析工作流结构** - 解析 [src/graph/](mdc:src/graph) 目录中的节点和边定义
+2. **多格式输出** - 支持PNG、SVG、HTML交互式、Mermaid格式
+3. **自动刷新模式** - 监控源代码变化，实时更新流程图
+4. **详细分析报告** - 生成工作流摘要和统计信息
+
+## 快速使用
+
+### 基础命令
+
+```bash
+# 生成所有格式的流程图
+python3 scripts/generate_workflow_diagram.py
+
+# 只生成特定格式
+python3 scripts/generate_workflow_diagram.py --format png
+python3 scripts/generate_workflow_diagram.py --format mermaid
+
+# 生成后自动打开
+python3 scripts/generate_workflow_diagram.py --open
+
+# 生成工作流摘要
+python3 scripts/generate_workflow_diagram.py --summary
+```
+
+### 开发模式
+
+```bash
+# 启动自动刷新模式（推荐开发时使用）
+python3 scripts/generate_workflow_diagram.py --auto-refresh
+
+# 自定义刷新间隔
+python3 scripts/generate_workflow_diagram.py --auto-refresh --interval 3
+```
+
+## 输出文件
+
+生成的文件位于 [docs/diagrams/](mdc:docs/diagrams) 目录：
+
+- `fusionai_workflow.png` - 高质量PNG流程图
+- `fusionai_workflow.svg` - 可缩放矢量图
+- `fusionai_workflow_interactive.html` - 交互式HTML图表
+- `fusionai_workflow.mmd` - Mermaid图表代码
+- `fusionai_workflow_matplotlib.png` - Matplotlib版本
+
+工作流摘要报告： [docs/workflow_summary.md](mdc:docs/workflow_summary.md)
+
+## 依赖安装
+
+### 自动安装
+```bash
+python3 scripts/setup_diagram_dependencies.py
+```
+
+### 手动安装
+```bash
+# Python依赖
+uv add graphviz matplotlib networkx plotly watchdog
+
+# 系统级Graphviz (macOS)
+brew install graphviz
+```
+
+## 分析机制
+
+### 工作流结构分析
+
+工具自动分析以下文件以构建流程图：
+
+1. **[src/graph/builder.py](mdc:src/graph/builder.py)** - 节点定义和基础连接
+2. **[src/graph/nodes.py](mdc:src/graph/nodes.py)** - 节点实现和动态路由
+3. **[src/config/__init__.py](mdc:src/config/__init__.py)** - 团队成员配置
+4. **[src/agents/](mdc:src/agents)** - 智能体工具绑定信息
+
+### 节点类型识别
+
+自动识别的节点类型：
+
+- **入口节点** (coordinator) - 用户交互接口
+- **规划节点** (planner) - 任务规划和分解  
+- **监督节点** (supervisor) - 流程控制中心
+- **执行节点** (researcher, coder, browser等) - 具体任务执行
+- **输出节点** (reporter) - 结果整理和报告
+
+### 路由分析
+
+- **直接边** - 固定的节点连接关系
+- **条件边** - supervisor动态路由到不同智能体
+
+## 开发集成
+
+### 在开发过程中使用
+
+1. **修改工作流后立即更新图表**
+   ```bash
+   python3 scripts/generate_workflow_diagram.py --format png
+   ```
+
+2. **开发时持续监控**
+   ```bash
+   python3 scripts/generate_workflow_diagram.py --auto-refresh
+   ```
+
+3. **文档集成**
+   在README或文档中引用生成的图表：
+   ```markdown
+   ![FusionAI工作流](mdc:docs/diagrams/fusionai_workflow.png)
+   ```
+
+### CI/CD集成
+
+```yaml
+# GitHub Actions示例
+- name: Generate Workflow Diagrams  
+  run: |
+    python3 scripts/setup_diagram_dependencies.py
+    python3 scripts/generate_workflow_diagram.py --format all
+    
+- name: Commit Updated Diagrams
+  run: |
+    git add docs/diagrams/
+    git commit -m "Update workflow diagrams" || exit 0
+```
+
+## 自定义和扩展
+
+### 修改节点颜色
+
+编辑 [scripts/generate_workflow_diagram.py](mdc:scripts/generate_workflow_diagram.py) 中的颜色配置：
+
+```python
+node_colors = {
+    "入口节点": "#E3F2FD",    # 浅蓝色
+    "规划节点": "#F3E5F5",    # 浅紫色
+    "监督节点": "#FFF3E0",    # 浅橙色
+    "执行节点": "#E8F5E8",    # 浅绿色
+    "输出节点": "#FFEBEE"     # 浅红色
+}
+```
+
+### 添加新的分析功能
+
+扩展 `WorkflowAnalyzer` 类：
+
+```python
+def _analyze_custom_feature(self, workflow_info):
+    """自定义分析功能"""
+    # 添加特定的分析逻辑
+    pass
+```
+
+### 新增输出格式
+
+扩展 `DiagramGenerator` 类：
+
+```python
+def generate_custom_format(self):
+    """自定义格式生成器"""
+    # 实现新的输出格式
+    pass
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **缺少依赖包**
+   ```bash
+   python3 scripts/setup_diagram_dependencies.py
+   ```
+
+2. **Graphviz未安装**
+   ```bash
+   brew install graphviz  # macOS
+   sudo apt-get install graphviz  # Ubuntu
+   ```
+
+3. **中文字体显示问题**
+   - Matplotlib会显示中文字体警告，但不影响PNG生成
+   - 建议使用SVG或HTML格式获得更好的中文支持
+
+4. **导入错误**
+   - 确保在项目根目录运行脚本
+   - 检查虚拟环境是否正确激活
+
+### 调试模式
+
+```bash
+# 启用详细日志
+python3 scripts/generate_workflow_diagram.py --verbose
+
+# 测试单个格式
+python3 scripts/generate_workflow_diagram.py --format mermaid
+```
+
+## 最佳实践
+
+1. **开发时使用自动刷新**
+   ```bash
+   python3 scripts/generate_workflow_diagram.py --auto-refresh
+   ```
+
+2. **文档使用PNG格式**
+   - 适合嵌入README和文档
+   - 跨平台兼容性好
+
+3. **演示使用HTML交互式**
+   - 支持悬停查看详细信息
+   - 适合在线演示和培训
+
+4. **代码文档使用Mermaid**
+   - 可以直接嵌入Markdown
+   - GitHub原生支持渲染
+
+5. **定期更新图表**
+   - 在修改工作流后及时生成新图表
+   - 将图表纳入版本控制
+
+## 相关文件
+
+- **使用文档**: [docs/workflow_diagram_generator.md](mdc:docs/workflow_diagram_generator.md)
+- **生成脚本**: [scripts/generate_workflow_diagram.py](mdc:scripts/generate_workflow_diagram.py)
+- **依赖安装**: [scripts/setup_diagram_dependencies.py](mdc:scripts/setup_diagram_dependencies.py)
+- **输出目录**: [docs/diagrams/](mdc:docs/diagrams)
+- **工作流源码**: [src/graph/](mdc:src/graph)
+
+---
+
+**💡 提示**: 这个工具是专门为FusionAI项目设计的，能够准确反映当前的智能体工作流结构。建议在修改工作流代码后及时更新图表，保持文档与代码的同步。
