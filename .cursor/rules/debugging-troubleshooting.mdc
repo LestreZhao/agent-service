@@ -1,0 +1,596 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 调试和故障排除指南
+
+## 🔍 常见问题诊断
+
+### 环境相关问题
+
+#### Python环境问题
+```bash
+# 问题：Python版本不匹配
+# 症状：ModuleNotFoundError, SyntaxError
+# 解决方案：
+python --version  # 检查Python版本，需要>=3.12
+which python      # 确认Python路径
+python -m venv .venv --clear  # 重新创建虚拟环境
+
+# 问题：包依赖冲突
+# 症状：ImportError, 版本冲突警告
+# 解决方案：
+uv sync --reinstall  # 重新安装所有依赖
+pip list              # 检查已安装包
+pip check             # 检查依赖关系
+```
+
+#### 环境变量配置问题
+```bash
+# 问题：API密钥未配置
+# 症状：401 Unauthorized, API key missing
+# 解决方案：
+cp .env.example .env
+# 编辑.env文件，添加以下配置：
+# OPENAI_API_KEY=your_openai_key
+# DEEPSEEK_API_KEY=your_deepseek_key
+# DATABASE_URL=your_database_url
+
+# 验证环境变量
+python -c "import os; print(os.getenv('OPENAI_API_KEY'))"
+```
+
+### 依赖安装问题
+
+#### Browser-use配置问题
+```bash
+# 问题：浏览器启动失败
+# 症状：ChromeDriver not found, Browser launch failed
+# 解决方案：
+
+# macOS
+brew install chromium
+brew install chromedriver
+
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install chromium-browser chromium-chromedriver
+
+# 设置Chrome路径
+export CHROME_EXECUTABLE_PATH="/usr/bin/chromium-browser"
+
+# 验证安装
+python -c "from browser_use import Browser; print('Browser-use OK')"
+```
+
+#### LangChain相关问题
+```bash
+# 问题：LangChain组件导入失败
+# 症状：ImportError: cannot import name 'xxx'
+# 解决方案：
+pip install langchain-community --upgrade
+pip install langchain-experimental --upgrade
+pip install langgraph --upgrade
+
+# 检查版本兼容性
+python -c "
+import langchain
+import langgraph
+print(f'LangChain: {langchain.__version__}')
+print(f'LangGraph: {langgraph.__version__}')
+"
+```
+
+## 🛠️ 调试工具和技巧
+
+### 日志调试
+```python
+# 启用详细日志
+import logging
+import sys
+
+# 配置根日志器
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('debug.log')
+    ]
+)
+
+# 特定模块的日志级别
+logging.getLogger('src.tools').setLevel(logging.DEBUG)
+logging.getLogger('src.agents').setLevel(logging.DEBUG)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+
+# 使用日志记录关键信息
+logger = logging.getLogger(__name__)
+
+async def debug_function():
+    logger.debug("Function started")
+    try:
+        result = await some_operation()
+        logger.info(f"Operation completed: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Operation failed: {e}", exc_info=True)
+        raise
+```
+
+### 断点调试
+```python
+# 使用pdb进行调试
+import pdb
+
+def problematic_function(data):
+    # 设置断点
+    pdb.set_trace()
+    
+    # 调试时可用的命令：
+    # l (list) - 显示当前代码
+    # n (next) - 下一行
+    # s (step) - 进入函数
+    # c (continue) - 继续执行
+    # p variable_name - 打印变量值
+    # pp variable_name - 美化打印
+    # q (quit) - 退出调试器
+    
+    processed_data = process_data(data)
+    return processed_data
+
+# 使用ipdb（更友好的调试器）
+import ipdb
+ipdb.set_trace()
+
+# 条件断点
+if len(data) > 100:
+    import pdb; pdb.set_trace()
+```
+
+### 性能调试
+```python
+import time
+import cProfile
+import pstats
+from functools import wraps
+
+def performance_monitor(func):
+    """性能监控装饰器"""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        start_memory = get_memory_usage()
+        
+        try:
+            result = await func(*args, **kwargs)
+            
+            end_time = time.time()
+            end_memory = get_memory_usage()
+            
+            print(f"Function {func.__name__}:")
+            print(f"  Execution time: {end_time - start_time:.2f}s")
+            print(f"  Memory usage: {end_memory - start_memory:.2f}MB")
+            
+            return result
+        except Exception as e:
+            print(f"Function {func.__name__} failed: {e}")
+            raise
+    
+    return wrapper
+
+# 使用cProfile进行性能分析
+def profile_function():
+    pr = cProfile.Profile()
+    pr.enable()
+    
+    # 执行需要分析的代码
+    your_code_here()
+    
+    pr.disable()
+    
+    # 生成报告
+    stats = pstats.Stats(pr)
+    stats.sort_stats('cumulative')
+    stats.print_stats(10)  # 显示前10个最耗时的函数
+```
+
+## 🚨 错误处理模式
+
+### 统一异常处理
+```python
+# src/utils/exceptions.py
+class FusionAIError(Exception):
+    """FusionAI基础异常类"""
+    
+    def __init__(self, message: str, error_code: str = None, details: dict = None):
+        self.message = message
+        self.error_code = error_code
+        self.details = details or {}
+        super().__init__(self.message)
+    
+    def to_dict(self):
+        return {
+            "error": self.message,
+            "error_code": self.error_code,
+            "details": self.details
+        }
+
+class ToolExecutionError(FusionAIError):
+    """工具执行异常"""
+    pass
+
+class APIError(FusionAIError):
+    """API相关异常"""
+    pass
+
+class ConfigurationError(FusionAIError):
+    """配置错误"""
+    pass
+
+# 异常处理装饰器
+def error_handler(default_return=None):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except FusionAIError:
+                # 重新抛出已知异常
+                raise
+            except Exception as e:
+                # 包装未知异常
+                logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
+                raise FusionAIError(
+                    f"Unexpected error in {func.__name__}: {str(e)}",
+                    error_code="UNEXPECTED_ERROR",
+                    details={"function": func.__name__, "args": str(args)}
+                )
+        return wrapper
+    return decorator
+```
+
+### API错误处理
+```python
+# src/api/error_handlers.py
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
+from src.utils.exceptions import FusionAIError
+
+async def fusionai_exception_handler(request: Request, exc: FusionAIError):
+    """FusionAI异常处理器"""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": exc.message,
+            "error_code": exc.error_code,
+            "details": exc.details,
+            "path": str(request.url)
+        }
+    )
+
+async def general_exception_handler(request: Request, exc: Exception):
+    """通用异常处理器"""
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "error_code": "INTERNAL_ERROR",
+            "message": "An unexpected error occurred"
+        }
+    )
+
+# 在FastAPI应用中注册异常处理器
+from fastapi import FastAPI
+from src.utils.exceptions import FusionAIError
+
+app = FastAPI()
+app.add_exception_handler(FusionAIError, fusionai_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+```
+
+## 🔧 工具特定调试
+
+### 浏览器自动化调试
+```python
+# 浏览器调试配置
+from browser_use import Browser
+import asyncio
+
+async def debug_browser_operation():
+    # 启用调试模式
+    browser = Browser(
+        headless=False,  # 显示浏览器窗口
+        devtools=True,   # 开启开发者工具
+        slow_mo=1000,    # 慢动作模式，便于观察
+    )
+    
+    try:
+        # 设置页面超时
+        await browser.set_default_timeout(30000)
+        
+        # 启用请求拦截（用于调试网络问题）
+        await browser.page.route("**/*", lambda route: print(f"Request: {route.request.url}"))
+        
+        # 执行浏览器操作
+        await browser.goto("https://example.com")
+        
+        # 截图用于调试
+        await browser.screenshot(path="debug_screenshot.png")
+        
+    except Exception as e:
+        print(f"Browser operation failed: {e}")
+        # 保存页面内容用于调试
+        content = await browser.page.content()
+        with open("debug_page.html", "w") as f:
+            f.write(content)
+    finally:
+        await browser.close()
+
+# 检查浏览器环境
+async def check_browser_environment():
+    try:
+        browser = Browser(headless=True)
+        await browser.goto("data:text/html,<h1>Browser Test</h1>")
+        title = await browser.page.title()
+        print(f"Browser test successful: {title}")
+        await browser.close()
+        return True
+    except Exception as e:
+        print(f"Browser test failed: {e}")
+        return False
+```
+
+### 数据库调试
+```python
+# 数据库连接调试
+import cx_Oracle
+import asyncio
+from src.config import settings
+
+async def debug_database_connection():
+    """调试数据库连接"""
+    try:
+        # 尝试创建连接
+        connection = cx_Oracle.connect(settings.database_url)
+        print("Database connection successful")
+        
+        # 测试查询
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1 FROM DUAL")
+        result = cursor.fetchone()
+        print(f"Test query result: {result}")
+        
+        # 检查权限
+        cursor.execute("SELECT USER FROM DUAL")
+        user = cursor.fetchone()
+        print(f"Connected as user: {user[0]}")
+        
+        cursor.close()
+        connection.close()
+        return True
+        
+    except cx_Oracle.Error as e:
+        print(f"Database connection failed: {e}")
+        
+        # 详细错误分析
+        error, = e.args
+        print(f"Oracle Error Code: {error.code}")
+        print(f"Oracle Error Message: {error.message}")
+        
+        # 常见错误代码处理
+        if error.code == 12541:
+            print("Solution: Check TNS listener configuration")
+        elif error.code == 1017:
+            print("Solution: Check username/password")
+        elif error.code == 12154:
+            print("Solution: Check TNS names configuration")
+        
+        return False
+```
+
+### LLM调用调试
+```python
+# LLM调用调试
+import json
+from src.agents.llm import LLMManager
+
+async def debug_llm_call():
+    """调试LLM调用"""
+    llm_manager = LLMManager()
+    
+    try:
+        # 测试不同的模型
+        for provider in ['openai', 'deepseek']:
+            print(f"\n--- Testing {provider} ---")
+            
+            try:
+                llm = llm_manager.get_llm(provider)
+                
+                # 简单测试
+                response = await llm.ainvoke("测试消息，请回复'OK'")
+                print(f"Response: {response}")
+                
+                # 检查token使用情况
+                if hasattr(response, 'usage'):
+                    print(f"Token usage: {response.usage}")
+                
+            except Exception as e:
+                print(f"{provider} test failed: {e}")
+                
+                # 检查API密钥
+                api_key = get_api_key(provider)
+                if not api_key:
+                    print(f"Missing API key for {provider}")
+                else:
+                    print(f"API key present: {api_key[:10]}...")
+    
+    except Exception as e:
+        print(f"LLM manager initialization failed: {e}")
+
+# 监控LLM调用性能
+class LLMCallMonitor:
+    def __init__(self):
+        self.calls = []
+    
+    async def monitor_call(self, provider: str, prompt: str, response: str, 
+                          execution_time: float, token_usage: dict = None):
+        call_info = {
+            "timestamp": time.time(),
+            "provider": provider,
+            "prompt_length": len(prompt),
+            "response_length": len(response),
+            "execution_time": execution_time,
+            "token_usage": token_usage
+        }
+        
+        self.calls.append(call_info)
+        
+        # 检查异常情况
+        if execution_time > 30:  # 超过30秒
+            print(f"WARNING: Slow LLM call detected: {execution_time:.2f}s")
+        
+        if not response.strip():
+            print("WARNING: Empty response from LLM")
+    
+    def get_statistics(self):
+        if not self.calls:
+            return "No calls recorded"
+        
+        avg_time = sum(call["execution_time"] for call in self.calls) / len(self.calls)
+        total_calls = len(self.calls)
+        
+        return f"Total calls: {total_calls}, Average time: {avg_time:.2f}s"
+```
+
+## 📊 监控和健康检查
+
+### 系统健康检查
+```python
+# src/utils/health_check.py
+import asyncio
+import psutil
+import httpx
+from typing import Dict, List
+
+class HealthChecker:
+    """系统健康检查器"""
+    
+    async def run_all_checks(self) -> Dict[str, Dict]:
+        """运行所有健康检查"""
+        checks = {
+            "system": await self.check_system_resources(),
+            "database": await self.check_database(),
+            "external_apis": await self.check_external_apis(),
+            "browser": await self.check_browser(),
+            "dependencies": await self.check_dependencies()
+        }
+        
+        # 计算整体健康状态
+        overall_status = "healthy"
+        for check_name, check_result in checks.items():
+            if check_result["status"] != "healthy":
+                overall_status = "unhealthy"
+                break
+        
+        return {
+            "overall_status": overall_status,
+            "checks": checks,
+            "timestamp": time.time()
+        }
+    
+    async def check_system_resources(self) -> Dict:
+        """检查系统资源"""
+        try:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            # 设置阈值
+            warnings = []
+            if cpu_percent > 80:
+                warnings.append(f"High CPU usage: {cpu_percent}%")
+            if memory.percent > 80:
+                warnings.append(f"High memory usage: {memory.percent}%")
+            if disk.percent > 80:
+                warnings.append(f"High disk usage: {disk.percent}%")
+            
+            status = "healthy" if not warnings else "warning"
+            
+            return {
+                "status": status,
+                "warnings": warnings,
+                "details": {
+                    "cpu_percent": cpu_percent,
+                    "memory_percent": memory.percent,
+                    "disk_percent": disk.percent
+                }
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    async def check_external_apis(self) -> Dict:
+        """检查外部API连接"""
+        apis_to_check = [
+            {"name": "OpenAI", "url": "https://api.openai.com/v1/models"},
+            {"name": "DeepSeek", "url": "https://api.deepseek.com/v1/models"},
+        ]
+        
+        results = []
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            for api in apis_to_check:
+                try:
+                    response = await client.get(api["url"])
+                    status = "healthy" if response.status_code == 200 else "unhealthy"
+                    results.append({
+                        "name": api["name"],
+                        "status": status,
+                        "response_code": response.status_code
+                    })
+                except Exception as e:
+                    results.append({
+                        "name": api["name"],
+                        "status": "error",
+                        "error": str(e)
+                    })
+        
+        overall_status = "healthy" if all(r["status"] == "healthy" for r in results) else "unhealthy"
+        
+        return {
+            "status": overall_status,
+            "apis": results
+        }
+
+# 健康检查API端点
+from fastapi import APIRouter
+
+health_router = APIRouter()
+
+@health_router.get("/health")
+async def health_check():
+    """健康检查端点"""
+    checker = HealthChecker()
+    result = await checker.run_all_checks()
+    return result
+
+@health_router.get("/health/quick")
+async def quick_health_check():
+    """快速健康检查"""
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }
+```
+
+## 🔗 相关规则文件
+- [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc): 详细故障排除手册
+- [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc): 环境配置指南
+- [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc): 性能优化策略
+- [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc): 测试和质量保证

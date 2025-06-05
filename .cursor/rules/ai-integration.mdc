@@ -1,0 +1,669 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI AI集成指南
+
+## 🤖 AI模型集成架构
+
+### 支持的AI提供商
+FusionAI 支持多种主流 AI 模型提供商，实现统一的调用接口：
+
+```python
+# src/agents/llm.py
+from langchain_openai import ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
+from langchain_community.llms import Ollama
+
+class LLMManager:
+    """语言模型管理器"""
+    
+    def __init__(self):
+        self.providers = {
+            'openai': self._init_openai,
+            'deepseek': self._init_deepseek,
+            'ollama': self._init_ollama,
+        }
+    
+    def get_llm(self, provider: str = 'openai', **kwargs):
+        """获取指定的语言模型实例"""
+        if provider not in self.providers:
+            raise ValueError(f"Unsupported provider: {provider}")
+        
+        return self.providers[provider](**kwargs)
+    
+    def _init_openai(self, model: str = "gpt-4", **kwargs):
+        """初始化OpenAI模型"""
+        return ChatOpenAI(
+            model=model,
+            temperature=kwargs.get('temperature', 0.7),
+            max_tokens=kwargs.get('max_tokens', 2000),
+            **kwargs
+        )
+    
+    def _init_deepseek(self, model: str = "deepseek-chat", **kwargs):
+        """初始化DeepSeek模型"""
+        return ChatDeepSeek(
+            model=model,
+            temperature=kwargs.get('temperature', 0.7),
+            max_tokens=kwargs.get('max_tokens', 2000),
+            **kwargs
+        )
+```
+
+## 🔧 智能代理配置
+
+### 基础代理结构
+```python
+# src/agents/base_agent.py
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Any
+from langchain.agents import AgentExecutor
+from langchain.memory import ConversationBufferMemory
+
+class BaseAgent(ABC):
+    """智能代理基类"""
+    
+    def __init__(self, name: str, description: str, llm_config: Dict = None):
+        self.name = name
+        self.description = description
+        self.llm_config = llm_config or {}
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True
+        )
+        self.tools = []
+        self._setup_agent()
+    
+    @abstractmethod
+    def _setup_agent(self):
+        """设置代理的具体配置"""
+        pass
+    
+    @abstractmethod
+    async def execute(self, task: str, context: Dict = None) -> Dict:
+        """执行任务的主要方法"""
+        pass
+    
+    def add_tool(self, tool):
+        """添加工具到代理"""
+        self.tools.append(tool)
+    
+    def get_prompt_template(self) -> str:
+        """获取代理的提示模板"""
+        return f"""
+        你是一个名为 {self.name} 的AI助手。
+        你的职责是：{self.description}
+        
+        请根据用户的请求，使用可用的工具来完成任务。
+        
+        可用工具：
+        {{tools}}
+        
+        请按照以下格式回复：
+        思考：[分析用户请求和选择合适的工具]
+        行动：[选择要使用的工具]
+        行动输入：[工具的输入参数]
+        观察：[工具执行的结果]
+        最终答案：[基于工具结果的最终回复]
+        """
+```
+
+### 专用代理实现
+```python
+# src/agents/research_agent.py
+from .base_agent import BaseAgent
+from ..tools import WebSearchTool, CrawlTool, DocumentAnalyzer
+
+class ResearchAgent(BaseAgent):
+    """研究型智能代理"""
+    
+    def __init__(self, llm_config: Dict = None):
+        super().__init__(
+            name="研究助手",
+            description="专门负责信息收集、网页抓取和内容分析的智能代理",
+            llm_config=llm_config
+        )
+    
+    def _setup_agent(self):
+        """配置研究代理的工具"""
+        # 添加搜索工具
+        self.add_tool(WebSearchTool())
+        
+        # 添加网页抓取工具
+        self.add_tool(CrawlTool())
+        
+        # 添加文档分析工具
+        self.add_tool(DocumentAnalyzer())
+        
+        # 配置专用提示模板
+        self.prompt_template = """
+        你是一个专业的研究助手，擅长：
+        1. 在线信息搜索和验证
+        2. 网页内容抓取和分析
+        3. 文档处理和信息提取
+        4. 数据整理和报告生成
+        
+        当用户提出研究需求时，请：
+        1. 分析用户的具体需求
+        2. 选择合适的工具进行信息收集
+        3. 对收集的信息进行分析和验证
+        4. 提供结构化的研究报告
+        
+        可用工具：{tools}
+        """
+    
+    async def execute(self, task: str, context: Dict = None) -> Dict:
+        """执行研究任务"""
+        context = context or {}
+        
+        # 解析任务类型
+        if "搜索" in task or "查找" in task:
+            return await self._handle_search_task(task, context)
+        elif "抓取" in task or "爬取" in task:
+            return await self._handle_crawl_task(task, context)
+        elif "分析" in task:
+            return await self._handle_analysis_task(task, context)
+        else:
+            return await self._handle_general_research(task, context)
+    
+    async def _handle_search_task(self, task: str, context: Dict) -> Dict:
+        """处理搜索任务"""
+        # 实现搜索逻辑
+        search_tool = next(tool for tool in self.tools if isinstance(tool, WebSearchTool))
+        
+        # 提取搜索关键词
+        keywords = self._extract_keywords(task)
+        
+        # 执行搜索
+        search_results = await search_tool.search(keywords)
+        
+        return {
+            "type": "search",
+            "results": search_results,
+            "summary": self._summarize_search_results(search_results)
+        }
+```
+
+## 📊 LangGraph工作流集成
+
+### 工作流状态定义
+```python
+# src/graph/workflow_state.py
+from typing import Dict, List, Optional, TypedDict
+from langchain.schema import BaseMessage
+
+class WorkflowState(TypedDict):
+    """工作流状态定义"""
+    
+    # 基础信息
+    user_input: str
+    session_id: str
+    
+    # 处理状态
+    current_step: str
+    completed_steps: List[str]
+    
+    # 数据流
+    messages: List[BaseMessage]
+    intermediate_results: Dict[str, any]
+    final_result: Optional[Dict]
+    
+    # 错误处理
+    errors: List[str]
+    retry_count: int
+    
+    # 配置
+    config: Dict[str, any]
+```
+
+### 工作流节点定义
+```python
+# src/graph/nodes.py
+from typing import Dict
+from .workflow_state import WorkflowState
+
+async def input_processing_node(state: WorkflowState) -> WorkflowState:
+    """输入处理节点"""
+    user_input = state["user_input"]
+    
+    # 输入清理和验证
+    cleaned_input = clean_user_input(user_input)
+    
+    # 意图识别
+    intent = await recognize_intent(cleaned_input)
+    
+    # 更新状态
+    state["intermediate_results"]["intent"] = intent
+    state["intermediate_results"]["cleaned_input"] = cleaned_input
+    state["current_step"] = "input_processed"
+    state["completed_steps"].append("input_processing")
+    
+    return state
+
+async def agent_routing_node(state: WorkflowState) -> WorkflowState:
+    """智能代理路由节点"""
+    intent = state["intermediate_results"]["intent"]
+    
+    # 根据意图选择合适的代理
+    agent_type = route_to_agent(intent)
+    
+    # 获取代理实例
+    agent = get_agent_instance(agent_type)
+    
+    # 执行代理任务
+    agent_result = await agent.execute(
+        task=state["intermediate_results"]["cleaned_input"],
+        context=state["config"]
+    )
+    
+    # 更新状态
+    state["intermediate_results"]["agent_result"] = agent_result
+    state["current_step"] = "agent_executed"
+    state["completed_steps"].append("agent_routing")
+    
+    return state
+
+async def result_formatting_node(state: WorkflowState) -> WorkflowState:
+    """结果格式化节点"""
+    agent_result = state["intermediate_results"]["agent_result"]
+    
+    # 格式化结果
+    formatted_result = format_agent_result(agent_result)
+    
+    # 生成用户友好的回复
+    user_response = generate_user_response(formatted_result)
+    
+    # 更新最终结果
+    state["final_result"] = {
+        "response": user_response,
+        "data": formatted_result,
+        "metadata": {
+            "processing_time": calculate_processing_time(state),
+            "steps_completed": state["completed_steps"]
+        }
+    }
+    
+    state["current_step"] = "completed"
+    state["completed_steps"].append("result_formatting")
+    
+    return state
+```
+
+### 工作流构建
+```python
+# src/graph/workflow.py
+from langgraph import Graph
+from .nodes import input_processing_node, agent_routing_node, result_formatting_node
+from .workflow_state import WorkflowState
+
+def create_fusionai_workflow() -> Graph:
+    """创建FusionAI主工作流"""
+    
+    workflow = Graph()
+    
+    # 添加节点
+    workflow.add_node("input_processing", input_processing_node)
+    workflow.add_node("agent_routing", agent_routing_node)
+    workflow.add_node("result_formatting", result_formatting_node)
+    
+    # 定义边和条件
+    workflow.add_edge("input_processing", "agent_routing")
+    workflow.add_edge("agent_routing", "result_formatting")
+    
+    # 设置入口点
+    workflow.set_entry_point("input_processing")
+    
+    # 设置条件路由
+    workflow.add_conditional_edges(
+        "agent_routing",
+        should_continue,
+        {
+            "continue": "result_formatting",
+            "retry": "agent_routing",
+            "error": "error_handling"
+        }
+    )
+    
+    return workflow.compile()
+
+def should_continue(state: WorkflowState) -> str:
+    """判断工作流是否应该继续"""
+    if state.get("errors"):
+        if state["retry_count"] < 3:
+            state["retry_count"] += 1
+            return "retry"
+        else:
+            return "error"
+    
+    return "continue"
+```
+
+## 🛠️ 工具集成模式
+
+### 工具装饰器系统
+```python
+# src/utils/decorators.py
+import asyncio
+import logging
+import time
+from functools import wraps
+from typing import Callable, Any
+
+def ai_tool(name: str = None, description: str = None):
+    """AI工具装饰器"""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 工具执行前的准备工作
+            start_time = time.time()
+            logger = logging.getLogger(func.__module__)
+            
+            try:
+                # 执行工具函数
+                result = await func(*args, **kwargs)
+                
+                # 记录成功执行
+                execution_time = time.time() - start_time
+                logger.info(f"Tool {name or func.__name__} executed successfully in {execution_time:.2f}s")
+                
+                return {
+                    "success": True,
+                    "data": result,
+                    "execution_time": execution_time,
+                    "tool_name": name or func.__name__
+                }
+                
+            except Exception as e:
+                # 记录错误
+                execution_time = time.time() - start_time
+                logger.error(f"Tool {name or func.__name__} failed: {str(e)}")
+                
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "execution_time": execution_time,
+                    "tool_name": name or func.__name__
+                }
+        
+        # 添加工具元数据
+        wrapper.tool_name = name or func.__name__
+        wrapper.tool_description = description or func.__doc__
+        wrapper.is_ai_tool = True
+        
+        return wrapper
+    return decorator
+
+def requires_api_key(service: str):
+    """API密钥验证装饰器"""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 检查API密钥
+            api_key = get_api_key(service)
+            if not api_key:
+                raise ValueError(f"Missing API key for {service}")
+            
+            # 将API密钥添加到参数中
+            kwargs['api_key'] = api_key
+            
+            return await func(*args, **kwargs)
+        
+        return wrapper
+    return decorator
+```
+
+### 智能工具选择
+```python
+# src/agents/tool_selector.py
+from typing import List, Dict, Optional
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+class IntelligentToolSelector:
+    """智能工具选择器"""
+    
+    def __init__(self):
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.tool_registry = {}
+        self.tool_embeddings = {}
+    
+    def register_tool(self, tool_instance):
+        """注册工具"""
+        tool_name = tool_instance.tool_name
+        tool_description = tool_instance.tool_description
+        
+        # 存储工具实例
+        self.tool_registry[tool_name] = tool_instance
+        
+        # 计算工具描述的嵌入向量
+        self.tool_embeddings[tool_name] = self.embedding_model.encode(tool_description)
+    
+    async def select_best_tool(self, task_description: str, context: Dict = None) -> Optional[str]:
+        """根据任务描述选择最合适的工具"""
+        if not self.tool_registry:
+            return None
+        
+        # 计算任务描述的嵌入向量
+        task_embedding = self.embedding_model.encode(task_description)
+        
+        # 计算与所有工具的相似度
+        similarities = {}
+        for tool_name, tool_embedding in self.tool_embeddings.items():
+            similarity = np.dot(task_embedding, tool_embedding) / (
+                np.linalg.norm(task_embedding) * np.linalg.norm(tool_embedding)
+            )
+            similarities[tool_name] = similarity
+        
+        # 选择相似度最高的工具
+        best_tool = max(similarities, key=similarities.get)
+        
+        # 设置相似度阈值
+        if similarities[best_tool] > 0.6:
+            return best_tool
+        
+        return None
+    
+    async def get_tool_recommendations(self, task_description: str, top_k: int = 3) -> List[Dict]:
+        """获取工具推荐列表"""
+        if not self.tool_registry:
+            return []
+        
+        task_embedding = self.embedding_model.encode(task_description)
+        
+        recommendations = []
+        for tool_name, tool_embedding in self.tool_embeddings.items():
+            similarity = np.dot(task_embedding, tool_embedding) / (
+                np.linalg.norm(task_embedding) * np.linalg.norm(tool_embedding)
+            )
+            
+            recommendations.append({
+                "tool_name": tool_name,
+                "similarity": float(similarity),
+                "description": self.tool_registry[tool_name].tool_description
+            })
+        
+        # 按相似度排序并返回top_k
+        recommendations.sort(key=lambda x: x["similarity"], reverse=True)
+        return recommendations[:top_k]
+```
+
+## 🔄 多模型协作模式
+
+### 模型链式调用
+```python
+# src/agents/model_chain.py
+from typing import List, Dict, Any
+import asyncio
+
+class ModelChain:
+    """模型链式调用管理器"""
+    
+    def __init__(self):
+        self.models = {}
+        self.chain_configs = {}
+    
+    def register_model(self, name: str, model_instance, capabilities: List[str]):
+        """注册模型"""
+        self.models[name] = {
+            "instance": model_instance,
+            "capabilities": capabilities
+        }
+    
+    async def execute_chain(self, chain_name: str, initial_input: str, context: Dict = None) -> Dict:
+        """执行模型链"""
+        if chain_name not in self.chain_configs:
+            raise ValueError(f"Chain {chain_name} not configured")
+        
+        chain_config = self.chain_configs[chain_name]
+        current_input = initial_input
+        results = []
+        
+        for step in chain_config["steps"]:
+            model_name = step["model"]
+            task_type = step["task_type"]
+            
+            if model_name not in self.models:
+                raise ValueError(f"Model {model_name} not registered")
+            
+            model = self.models[model_name]["instance"]
+            
+            # 执行当前步骤
+            step_result = await self._execute_model_step(
+                model, task_type, current_input, step.get("params", {})
+            )
+            
+            results.append({
+                "step": step["name"],
+                "model": model_name,
+                "result": step_result
+            })
+            
+            # 准备下一步的输入
+            current_input = self._prepare_next_input(step_result, step.get("output_transform"))
+        
+        return {
+            "chain_name": chain_name,
+            "steps": results,
+            "final_output": current_input
+        }
+    
+    def configure_chain(self, name: str, steps: List[Dict]):
+        """配置模型链"""
+        self.chain_configs[name] = {
+            "name": name,
+            "steps": steps
+        }
+    
+    async def _execute_model_step(self, model, task_type: str, input_data: str, params: Dict) -> Any:
+        """执行单个模型步骤"""
+        if task_type == "chat":
+            return await model.ainvoke([{"role": "user", "content": input_data}])
+        elif task_type == "completion":
+            return await model.agenerate([input_data])
+        else:
+            raise ValueError(f"Unsupported task type: {task_type}")
+```
+
+## 📈 性能监控和优化
+
+### AI调用监控
+```python
+# src/utils/ai_monitor.py
+import time
+import psutil
+from typing import Dict, List
+from dataclasses import dataclass
+from collections import defaultdict
+
+@dataclass
+class AICallMetrics:
+    """AI调用指标"""
+    model_name: str
+    start_time: float
+    end_time: float
+    input_tokens: int
+    output_tokens: int
+    cost: float
+    memory_usage: float
+    success: bool
+    error_message: str = None
+
+class AIPerformanceMonitor:
+    """AI性能监控器"""
+    
+    def __init__(self):
+        self.metrics: List[AICallMetrics] = []
+        self.model_stats = defaultdict(lambda: {
+            "total_calls": 0,
+            "total_cost": 0.0,
+            "total_tokens": 0,
+            "avg_response_time": 0.0,
+            "error_rate": 0.0
+        })
+    
+    def start_monitoring(self, model_name: str) -> Dict:
+        """开始监控AI调用"""
+        return {
+            "model_name": model_name,
+            "start_time": time.time(),
+            "start_memory": psutil.virtual_memory().used / 1024 / 1024  # MB
+        }
+    
+    def end_monitoring(self, monitor_context: Dict, success: bool = True, 
+                      input_tokens: int = 0, output_tokens: int = 0, 
+                      cost: float = 0.0, error_message: str = None):
+        """结束监控并记录指标"""
+        end_time = time.time()
+        end_memory = psutil.virtual_memory().used / 1024 / 1024
+        
+        metrics = AICallMetrics(
+            model_name=monitor_context["model_name"],
+            start_time=monitor_context["start_time"],
+            end_time=end_time,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost=cost,
+            memory_usage=end_memory - monitor_context["start_memory"],
+            success=success,
+            error_message=error_message
+        )
+        
+        self.metrics.append(metrics)
+        self._update_model_stats(metrics)
+    
+    def get_performance_report(self) -> Dict:
+        """获取性能报告"""
+        return {
+            "total_calls": len(self.metrics),
+            "model_breakdown": dict(self.model_stats),
+            "recent_metrics": self.metrics[-10:],  # 最近10次调用
+            "system_health": self._get_system_health()
+        }
+    
+    def _update_model_stats(self, metrics: AICallMetrics):
+        """更新模型统计信息"""
+        stats = self.model_stats[metrics.model_name]
+        stats["total_calls"] += 1
+        stats["total_cost"] += metrics.cost
+        stats["total_tokens"] += metrics.input_tokens + metrics.output_tokens
+        
+        # 计算平均响应时间
+        response_time = metrics.end_time - metrics.start_time
+        stats["avg_response_time"] = (
+            (stats["avg_response_time"] * (stats["total_calls"] - 1) + response_time) / 
+            stats["total_calls"]
+        )
+        
+        # 计算错误率
+        error_count = sum(1 for m in self.metrics 
+                         if m.model_name == metrics.model_name and not m.success)
+        stats["error_rate"] = error_count / stats["total_calls"]
+```
+
+## 🔗 相关规则文件
+- [fusionai-overview.mdc](mdc:.cursor/rules/fusionai-overview.mdc): 项目整体架构
+- [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc): LangGraph工作流详解
+- [tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc): 工具集成指南
+- [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc): 性能优化策略

@@ -1,0 +1,430 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 编码标准和最佳实践
+
+## 🎯 编码原则
+
+### 核心理念
+- **可读性第一**: 代码应该像文档一样易读
+- **简洁明了**: 避免过度复杂的设计
+- **一致性**: 统一的编码风格和模式
+- **可测试性**: 编写易于测试的代码
+- **可维护性**: 便于后续修改和扩展
+
+## 📝 代码格式规范
+
+### Python 风格指南
+```python
+# ✅ 正确的导入顺序
+import os
+import sys
+from pathlib import Path
+
+import httpx
+import pandas as pd
+from fastapi import FastAPI
+from langchain.agents import Agent
+
+from src.config import settings
+from src.tools.base import BaseTool
+```
+
+### 文件头部规范
+```python
+"""
+模块功能描述
+
+这个模块的主要作用是...
+
+Author: 开发者姓名
+Created: 2024-01-01
+Modified: 2024-01-15
+"""
+
+import logging
+from typing import Dict, List, Optional, Union
+
+logger = logging.getLogger(__name__)
+```
+
+### 类定义规范
+```python
+class DocumentProcessor(BaseTool):
+    """文档处理工具类
+    
+    提供文档解析、处理和转换功能。
+    支持PDF、Word、Excel等多种格式。
+    
+    Attributes:
+        supported_formats: 支持的文件格式列表
+        max_file_size: 最大文件大小限制
+        
+    Examples:
+        >>> processor = DocumentProcessor()
+        >>> result = processor.process_file("document.pdf")
+        >>> print(result.content)
+    """
+    
+    def __init__(self, max_size: int = 10_000_000):
+        """初始化文档处理器
+        
+        Args:
+            max_size: 最大文件大小，默认10MB
+        """
+        super().__init__()
+        self.max_file_size = max_size
+        self.supported_formats = ['.pdf', '.docx', '.xlsx']
+    
+    async def process_file(self, file_path: str) -> ProcessResult:
+        """处理文档文件
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            ProcessResult: 处理结果对象
+            
+        Raises:
+            FileNotFoundError: 文件不存在
+            ValueError: 不支持的文件格式
+        """
+        # 实现逻辑...
+        pass
+```
+
+### 函数定义规范
+```python
+async def fetch_web_content(
+    url: str,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: int = 30,
+    max_retries: int = 3
+) -> WebContent:
+    """获取网页内容
+    
+    使用异步HTTP客户端获取网页内容，支持重试机制。
+    
+    Args:
+        url: 目标URL
+        headers: 可选的HTTP头部
+        timeout: 超时时间，单位秒
+        max_retries: 最大重试次数
+        
+    Returns:
+        WebContent: 包含内容和元数据的对象
+        
+    Raises:
+        httpx.TimeoutException: 请求超时
+        httpx.HTTPStatusError: HTTP错误状态
+        
+    Examples:
+        >>> content = await fetch_web_content("https://example.com")
+        >>> print(content.text)
+    """
+    headers = headers or {}
+    
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for attempt in range(max_retries):
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+                
+                return WebContent(
+                    url=url,
+                    text=response.text,
+                    status_code=response.status_code,
+                    headers=dict(response.headers)
+                )
+            except httpx.RequestError as e:
+                if attempt == max_retries - 1:
+                    raise
+                logger.warning(f"Request failed, retrying ({attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(2 ** attempt)  # 指数退避
+```
+
+## 🔧 配置和常量管理
+
+### 环境变量配置
+```python
+# src/config/settings.py
+from pydantic import BaseSettings
+from typing import Optional
+
+class Settings(BaseSettings):
+    """应用配置设置"""
+    
+    # API 配置
+    openai_api_key: str
+    deepseek_api_key: Optional[str] = None
+    
+    # 数据库配置
+    database_url: str
+    db_pool_size: int = 10
+    
+    # 应用配置
+    debug_mode: bool = False
+    log_level: str = "INFO"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
+
+settings = Settings()
+```
+
+### 常量定义
+```python
+# src/config/constants.py
+"""应用常量定义"""
+
+# 文件相关常量
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+SUPPORTED_FILE_TYPES = {
+    'document': ['.pdf', '.docx', '.txt'],
+    'image': ['.jpg', '.jpeg', '.png', '.gif'],
+    'data': ['.csv', '.xlsx', '.json']
+}
+
+# API相关常量
+DEFAULT_TIMEOUT = 30
+MAX_RETRIES = 3
+RATE_LIMIT_CALLS = 100
+RATE_LIMIT_PERIOD = 60  # 秒
+
+# 响应代码
+class ResponseCode:
+    SUCCESS = 200
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    NOT_FOUND = 404
+    INTERNAL_ERROR = 500
+```
+
+## 🛡️ 错误处理和日志
+
+### 异常处理模式
+```python
+class FusionAIError(Exception):
+    """FusionAI基础异常类"""
+    
+    def __init__(self, message: str, error_code: str = None):
+        self.message = message
+        self.error_code = error_code
+        super().__init__(self.message)
+
+class ToolExecutionError(FusionAIError):
+    """工具执行异常"""
+    pass
+
+class APIError(FusionAIError):
+    """API相关异常"""
+    pass
+
+# 使用示例
+async def execute_tool(tool_name: str, params: dict) -> dict:
+    """执行工具"""
+    try:
+        tool = get_tool(tool_name)
+        result = await tool.execute(params)
+        return result
+    except KeyError:
+        raise ToolExecutionError(
+            f"Tool '{tool_name}' not found",
+            error_code="TOOL_NOT_FOUND"
+        )
+    except Exception as e:
+        logger.error(f"Tool execution failed: {e}")
+        raise ToolExecutionError(
+            f"Tool execution failed: {str(e)}",
+            error_code="EXECUTION_FAILED"
+        )
+```
+
+### 日志配置
+```python
+# src/config/logging.py
+import logging
+import sys
+from pathlib import Path
+
+def setup_logging(log_level: str = "INFO", log_file: str = None):
+    """配置日志系统"""
+    
+    # 日志格式
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # 控制台处理器
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    
+    # 文件处理器（可选）
+    handlers = [console_handler]
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(formatter)
+        handlers.append(file_handler)
+    
+    # 配置根日志器
+    logging.basicConfig(
+        level=getattr(logging, log_level.upper()),
+        handlers=handlers
+    )
+    
+    # 设置第三方库日志级别
+    logging.getLogger('httpx').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+```
+
+## 🧪 测试规范
+
+### 单元测试结构
+```python
+# tests/test_document_processor.py
+import pytest
+from pathlib import Path
+from unittest.mock import AsyncMock, Mock
+
+from src.tools.document_tool import DocumentProcessor, ProcessResult
+
+class TestDocumentProcessor:
+    """文档处理器测试类"""
+    
+    @pytest.fixture
+    def processor(self):
+        """测试夹具：创建文档处理器实例"""
+        return DocumentProcessor(max_size=1_000_000)
+    
+    @pytest.fixture
+    def sample_pdf_path(self, tmp_path):
+        """测试夹具：创建示例PDF文件"""
+        pdf_file = tmp_path / "sample.pdf"
+        pdf_file.write_bytes(b"Sample PDF content")
+        return str(pdf_file)
+    
+    async def test_process_valid_pdf(self, processor, sample_pdf_path):
+        """测试：处理有效的PDF文件"""
+        result = await processor.process_file(sample_pdf_path)
+        
+        assert isinstance(result, ProcessResult)
+        assert result.success is True
+        assert result.content is not None
+    
+    async def test_process_nonexistent_file(self, processor):
+        """测试：处理不存在的文件"""
+        with pytest.raises(FileNotFoundError):
+            await processor.process_file("nonexistent.pdf")
+    
+    async def test_process_unsupported_format(self, processor, tmp_path):
+        """测试：处理不支持的文件格式"""
+        unsupported_file = tmp_path / "file.xyz"
+        unsupported_file.write_text("content")
+        
+        with pytest.raises(ValueError, match="Unsupported file format"):
+            await processor.process_file(str(unsupported_file))
+```
+
+### 集成测试示例
+```python
+# tests/integration/test_api_endpoints.py
+import pytest
+from fastapi.testclient import TestClient
+
+from src.api.app import app
+
+class TestAPIEndpoints:
+    """API端点集成测试"""
+    
+    @pytest.fixture
+    def client(self):
+        """测试客户端"""
+        return TestClient(app)
+    
+    def test_health_check(self, client):
+        """测试：健康检查端点"""
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["status"] == "healthy"
+    
+    def test_document_upload(self, client, sample_document):
+        """测试：文档上传端点"""
+        with open(sample_document, "rb") as f:
+            files = {"file": ("test.pdf", f, "application/pdf")}
+            response = client.post("/api/documents/upload", files=files)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "document_id" in data
+        assert data["status"] == "uploaded"
+```
+
+## 📊 性能优化指南
+
+### 异步编程最佳实践
+```python
+# ✅ 正确的异步处理
+async def process_multiple_urls(urls: List[str]) -> List[WebContent]:
+    """并发处理多个URL"""
+    tasks = [fetch_web_content(url) for url in urls]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # 处理结果和异常
+    valid_results = []
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            logger.error(f"Failed to process {urls[i]}: {result}")
+        else:
+            valid_results.append(result)
+    
+    return valid_results
+
+# ✅ 使用上下文管理器
+async def batch_database_operations(operations: List[dict]):
+    """批量数据库操作"""
+    async with get_db_connection() as conn:
+        async with conn.transaction():
+            for op in operations:
+                await conn.execute(op['query'], op['params'])
+```
+
+### 缓存策略
+```python
+from functools import lru_cache
+from typing import Optional
+import asyncio
+
+class CacheManager:
+    """缓存管理器"""
+    
+    def __init__(self):
+        self._cache = {}
+        self._lock = asyncio.Lock()
+    
+    async def get(self, key: str) -> Optional[any]:
+        """获取缓存值"""
+        async with self._lock:
+            return self._cache.get(key)
+    
+    async def set(self, key: str, value: any, ttl: int = 300):
+        """设置缓存值"""
+        async with self._lock:
+            self._cache[key] = {
+                'value': value,
+                'expires_at': time.time() + ttl
+            }
+    
+    @lru_cache(maxsize=128)
+    def get_tool_config(self, tool_name: str) -> dict:
+        """获取工具配置（内存缓存）"""
+        return load_tool_config(tool_name)
+```
+
+## 🔗 相关规则文件
+- [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc): Python最佳实践详解
+- [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc): 测试策略指南
+- [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc): 性能优化技巧
+- [api-development.mdc](mdc:.cursor/rules/api-development.mdc): API开发规范

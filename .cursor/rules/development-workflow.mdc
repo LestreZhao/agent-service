@@ -1,0 +1,483 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 开发工作流指南
+
+## 🚀 开发生命周期
+
+### 项目初始化流程
+```bash
+# 1. 克隆项目
+git clone <repository-url>
+cd fusionai
+
+# 2. 环境配置
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# 或 .venv\Scripts\activate  # Windows
+
+# 3. 依赖安装
+uv sync  # 推荐使用uv
+# 或者 pip install -e .
+
+# 4. 环境变量配置
+cp .env.example .env
+# 编辑 .env 文件，添加必要的API密钥
+
+# 5. 数据库初始化（如果需要）
+python scripts/init_db.py
+
+# 6. 启动开发服务器
+python server.py
+```
+
+## 🔄 标准开发流程
+
+### 功能开发循环
+```mermaid
+graph TD
+    A[创建功能分支] --> B[编写代码]
+    B --> C[编写单元测试]
+    C --> D[运行测试套件]
+    D --> E{测试通过?}
+    E -->|否| B
+    E -->|是| F[代码格式化]
+    F --> G[静态代码检查]
+    G --> H[提交代码]
+    H --> I[创建PR]
+    I --> J[代码审查]
+    J --> K{审查通过?}
+    K -->|否| B
+    K -->|是| L[合并主分支]
+    L --> M[部署测试环境]
+```
+
+### 分支管理策略
+```bash
+# 主要分支
+main          # 生产分支，稳定版本
+develop       # 开发分支，集成新功能
+hotfix/*      # 紧急修复分支
+feature/*     # 功能开发分支
+release/*     # 发布准备分支
+
+# 分支创建示例
+git checkout develop
+git pull origin develop
+git checkout -b feature/add-document-analyzer
+
+# 开发完成后
+git add .
+git commit -m "feat: add document analyzer tool"
+git push origin feature/add-document-analyzer
+```
+
+## 🛠️ 日常开发任务
+
+### 代码开发规范
+```python
+# 1. 创建新功能模块
+# 文件: src/tools/document_analyzer.py
+
+"""
+文档分析工具
+
+提供文档内容分析、关键词提取、摘要生成等功能。
+"""
+
+import logging
+from typing import Dict, List, Optional
+from pathlib import Path
+
+from ..utils.decorators import tool_error_handler, performance_monitor
+from .base import BaseTool
+
+logger = logging.getLogger(__name__)
+
+class DocumentAnalyzer(BaseTool):
+    """文档分析器"""
+    
+    def __init__(self):
+        super().__init__()
+        self.name = "document_analyzer"
+        self.description = "分析文档内容并提取关键信息"
+    
+    @tool_error_handler
+    @performance_monitor
+    async def analyze_document(self, file_path: str, options: Dict = None) -> Dict:
+        """分析文档内容
+        
+        Args:
+            file_path: 文档文件路径
+            options: 分析选项配置
+            
+        Returns:
+            Dict: 分析结果
+        """
+        options = options or {}
+        
+        # 实现分析逻辑
+        result = {
+            "summary": "文档摘要...",
+            "keywords": ["关键词1", "关键词2"],
+            "sentiment": "positive",
+            "language": "zh"
+        }
+        
+        logger.info(f"Document analysis completed for {file_path}")
+        return result
+```
+
+### 测试开发规范
+```python
+# 文件: tests/test_document_analyzer.py
+
+import pytest
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+from src.tools.document_analyzer import DocumentAnalyzer
+
+class TestDocumentAnalyzer:
+    """文档分析器测试"""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """创建分析器实例"""
+        return DocumentAnalyzer()
+    
+    @pytest.fixture
+    def sample_document(self, tmp_path):
+        """创建测试文档"""
+        doc_file = tmp_path / "test.txt"
+        doc_file.write_text("这是一个测试文档，包含一些示例内容。")
+        return str(doc_file)
+    
+    async def test_analyze_document_success(self, analyzer, sample_document):
+        """测试：成功分析文档"""
+        result = await analyzer.analyze_document(sample_document)
+        
+        assert "summary" in result
+        assert "keywords" in result
+        assert isinstance(result["keywords"], list)
+        assert "sentiment" in result
+    
+    async def test_analyze_document_invalid_file(self, analyzer):
+        """测试：分析不存在的文件"""
+        with pytest.raises(FileNotFoundError):
+            await analyzer.analyze_document("nonexistent.txt")
+    
+    @patch('src.tools.document_analyzer.logger')
+    async def test_analyze_document_logging(self, mock_logger, analyzer, sample_document):
+        """测试：确保正确记录日志"""
+        await analyzer.analyze_document(sample_document)
+        mock_logger.info.assert_called_once()
+```
+
+### API开发规范
+```python
+# 文件: src/api/document_routes.py
+
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from typing import Dict, Optional
+import logging
+
+from ..tools.document_analyzer import DocumentAnalyzer
+from ..models.responses import AnalysisResponse
+from ..utils.auth import get_current_user
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/documents", tags=["documents"])
+
+@router.post("/analyze", response_model=AnalysisResponse)
+async def analyze_document(
+    file: UploadFile = File(...),
+    options: Optional[Dict] = None,
+    current_user = Depends(get_current_user)
+):
+    """分析上传的文档"""
+    
+    # 验证文件类型
+    if not file.filename.endswith(('.txt', '.pdf', '.docx')):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file format"
+        )
+    
+    try:
+        # 保存临时文件
+        temp_path = f"/tmp/{file.filename}"
+        with open(temp_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        
+        # 执行分析
+        analyzer = DocumentAnalyzer()
+        result = await analyzer.analyze_document(temp_path, options)
+        
+        # 清理临时文件
+        Path(temp_path).unlink(missing_ok=True)
+        
+        return AnalysisResponse(
+            success=True,
+            data=result,
+            message="Document analyzed successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Document analysis failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
+```
+
+## 🧪 测试和质量保证
+
+### 测试执行流程
+```bash
+# 1. 运行所有测试
+pytest
+
+# 2. 运行特定测试文件
+pytest tests/test_document_analyzer.py
+
+# 3. 运行测试并生成覆盖率报告
+pytest --cov=src --cov-report=html
+
+# 4. 运行性能测试
+pytest tests/performance/ -v
+
+# 5. 运行集成测试
+pytest tests/integration/ -v
+```
+
+### 代码质量检查
+```bash
+# 1. 代码格式化
+black src/ tests/
+
+# 2. 导入排序
+isort src/ tests/
+
+# 3. 静态类型检查（可选）
+mypy src/
+
+# 4. 代码复杂度检查
+flake8 src/ tests/
+
+# 5. 安全检查
+bandit -r src/
+```
+
+### 自动化质量检查
+```bash
+# 创建 Makefile 简化操作
+make format      # 格式化代码
+make lint        # 代码检查
+make test        # 运行测试
+make coverage    # 测试覆盖率
+make quality     # 完整质量检查
+```
+
+## 📦 部署和发布
+
+### 开发环境部署
+```bash
+# 1. 启动开发服务器
+python server.py
+
+# 2. 使用热重载（推荐开发时使用）
+uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000
+
+# 3. 后台运行
+nohup python server.py > app.log 2>&1 &
+```
+
+### 生产环境部署
+```bash
+# 1. 构建Docker镜像
+docker build -t fusionai:latest .
+
+# 2. 运行容器
+docker run -d \
+  --name fusionai-app \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY=${OPENAI_API_KEY} \
+  -e DATABASE_URL=${DATABASE_URL} \
+  fusionai:latest
+
+# 3. 使用docker-compose
+docker-compose up -d
+```
+
+### 版本发布流程
+```bash
+# 1. 创建发布分支
+git checkout develop
+git pull origin develop
+git checkout -b release/v1.2.0
+
+# 2. 更新版本号
+# 编辑 pyproject.toml 中的版本号
+
+# 3. 更新CHANGELOG
+# 编辑 CHANGELOG.md，添加新版本的变更记录
+
+# 4. 提交发布准备
+git add .
+git commit -m "chore: prepare release v1.2.0"
+
+# 5. 合并到主分支
+git checkout main
+git merge release/v1.2.0
+
+# 6. 创建标签
+git tag v1.2.0
+git push origin main --tags
+
+# 7. 合并回开发分支
+git checkout develop
+git merge main
+git push origin develop
+```
+
+## 🔧 常用开发工具
+
+### IDE配置建议
+```json
+// .vscode/settings.json
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["tests/"],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/node_modules": true
+    }
+}
+```
+
+### Git hooks配置
+```bash
+# 创建pre-commit hook
+#!/bin/sh
+# .git/hooks/pre-commit
+
+echo "Running pre-commit checks..."
+
+# 代码格式化
+black --check src/ tests/
+if [ $? -ne 0 ]; then
+    echo "Code formatting check failed. Run 'black src/ tests/' to fix."
+    exit 1
+fi
+
+# 运行测试
+pytest tests/ -x
+if [ $? -ne 0 ]; then
+    echo "Tests failed. Please fix before committing."
+    exit 1
+fi
+
+echo "All checks passed!"
+```
+
+### 调试配置
+```python
+# 开发时使用的调试配置
+import logging
+import sys
+from pathlib import Path
+
+# 配置详细日志
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('debug.log')
+    ]
+)
+
+# 设置断点进行调试
+import pdb; pdb.set_trace()
+
+# 或使用ipdb（更友好的调试器）
+import ipdb; ipdb.set_trace()
+```
+
+## 📚 文档和注释
+
+### 代码注释规范
+```python
+def complex_business_logic(data: List[Dict], config: Dict) -> ProcessResult:
+    """处理复杂的业务逻辑
+    
+    这个函数实现了多步骤的数据处理流程：
+    1. 数据验证和清理
+    2. 业务规则应用
+    3. 结果格式化和验证
+    
+    Args:
+        data: 输入数据列表，每个元素包含必要的业务字段
+        config: 处理配置，包含处理参数和选项
+        
+    Returns:
+        ProcessResult: 处理结果对象，包含处理后的数据和元数据
+        
+    Raises:
+        ValidationError: 数据验证失败
+        ProcessingError: 业务处理异常
+        
+    Examples:
+        >>> data = [{"id": 1, "value": "test"}]
+        >>> config = {"strict_mode": True}
+        >>> result = complex_business_logic(data, config)
+        >>> print(result.success)
+        True
+    """
+    # 步骤1: 数据验证
+    validated_data = []
+    for item in data:
+        # 检查必要字段
+        if 'id' not in item or 'value' not in item:
+            raise ValidationError(f"Missing required fields in item: {item}")
+        validated_data.append(item)
+    
+    # 步骤2: 应用业务规则
+    processed_data = []
+    for item in validated_data:
+        # 根据配置应用不同的处理逻辑
+        if config.get('strict_mode', False):
+            # 严格模式下的额外验证
+            processed_item = apply_strict_processing(item)
+        else:
+            # 标准处理逻辑
+            processed_item = apply_standard_processing(item)
+        
+        processed_data.append(processed_item)
+    
+    # 步骤3: 格式化结果
+    return ProcessResult(
+        data=processed_data,
+        success=True,
+        metadata={
+            'processed_count': len(processed_data),
+            'config_used': config
+        }
+    )
+```
+
+## 🔗 相关规则文件
+- [git-workflow.mdc](mdc:.cursor/rules/git-workflow.mdc): Git工作流详细指南
+- [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc): 测试策略和质量保证
+- [coding-standards.mdc](mdc:.cursor/rules/coding-standards.mdc): 编码标准和规范
+- [api-development.mdc](mdc:.cursor/rules/api-development.mdc): API开发最佳实践
