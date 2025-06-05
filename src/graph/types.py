@@ -25,3 +25,8 @@ class State(MessagesState):
     full_plan: str
     deep_thinking_mode: bool
     search_before_planning: bool
+    
+    # 新增字段：执行总结追踪
+    execution_summaries: list[dict]  # 使用通用dict类型避免循环导入
+    output_directory: str
+    task_id: str

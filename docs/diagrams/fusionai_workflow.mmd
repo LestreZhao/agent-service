@@ -5,7 +5,7 @@ graph LR
     researcher["researcher<br/>进行网络搜索和信息收集"]
     coder["coder<br/>执行Python代码和数据处理"]
     browser["browser<br/>浏览器自动化操作"]
-    reporter["reporter<br/>整理结果并生成最终报告"]
+    output_integrator["output_integrator<br/>整合所有执行结果，生成最终报告"]
     db_analyst["db_analyst<br/>数据库查询和分析"]
     document_parser["document_parser<br/>文档解析和内容分析"]
     start([开始])
@@ -17,7 +17,7 @@ graph LR
     supervisor -->|路由到researcher| researcher
     supervisor -->|路由到coder| coder
     supervisor -->|路由到browser| browser
-    supervisor -->|路由到reporter| reporter
+    supervisor -->|路由到output_integrator| output_integrator
     supervisor -->|路由到db_analyst| db_analyst
     supervisor -->|路由到document_parser| document_parser
     researcher --> supervisor
@@ -25,7 +25,7 @@ graph LR
     browser --> supervisor
     db_analyst --> supervisor
     document_parser --> supervisor
-    reporter --> end
+    output_integrator --> end
     supervisor -->|任务完成| end
 
     classDef startEnd fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
@@ -33,11 +33,11 @@ graph LR
     classDef planner fill:#F3E5F5,stroke:#333,stroke-width:2px  
     classDef supervisor fill:#FFF3E0,stroke:#333,stroke-width:2px
     classDef executor fill:#E8F5E8,stroke:#333,stroke-width:2px
-    classDef reporter fill:#FFEBEE,stroke:#333,stroke-width:2px
+    classDef integrator fill:#FFEBEE,stroke:#333,stroke-width:2px
     
     class start,end startEnd
     class coordinator coordinator
     class planner planner
     class supervisor supervisor
     class researcher,coder,browser,db_analyst,document_parser executor
-    class reporter reporter
+    class output_integrator integrator

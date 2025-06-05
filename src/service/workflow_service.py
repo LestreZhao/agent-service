@@ -1,10 +1,15 @@
 import logging
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator
 
 from src.config import TEAM_MEMBERS
 from src.graph import build_graph
+from src.utils.json_cleaner import clean_json_response
 from langchain_community.adapters.openai import convert_message_to_dict
 import uuid
+from ..agents.llm import get_llm_by_type
 
 # Configure logging
 logging.basicConfig(
@@ -131,9 +136,11 @@ async def run_agent_workflow(
                 try:
                     plan_content = run_agent_workflow._planner_buffer
                     logger.info(f"Accumulated planner content: {plan_content[:100]}...")
-                    if plan_content.startswith("```json"):
-                        plan_content = plan_content.removeprefix("```json").removesuffix("```")
-                    plan_data = json.loads(plan_content)
+                    
+                    # 使用统一的JSON清理函数
+                    cleaned_plan_content = clean_json_response(plan_content)
+                    
+                    plan_data = json.loads(cleaned_plan_content)
                     if isinstance(plan_data, dict) and "steps" in plan_data:
                         current_plan_steps = plan_data["steps"]
                         current_step_index = 0
@@ -152,6 +159,8 @@ async def run_agent_workflow(
                     run_agent_workflow._planner_buffer = ""
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse plan: {e}")
+                    logger.debug(f"Original plan content: {plan_content}")
+                    logger.debug(f"Cleaned plan content: {cleaned_plan_content if 'cleaned_plan_content' in locals() else 'N/A'}")
                     run_agent_workflow._planner_buffer = ""
 
         # 当 supervisor 开始执行时，检查它要调用哪个 agent

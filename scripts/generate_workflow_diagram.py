@@ -104,8 +104,8 @@ class WorkflowAnalyzer:
             },
             "reporter": {
                 "name": "reporter",
-                "type": "输出节点",
-                "description": "整理结果并生成最终报告"
+                "type": "整合输出节点",
+                "description": "整合所有执行结果，生成最终报告"
             },
             "db_analyst": {
                 "name": "db_analyst", 
@@ -189,7 +189,7 @@ class DiagramGenerator:
             "规划节点": "#F3E5F5",    # 浅紫色
             "监督节点": "#FFF3E0",    # 浅橙色
             "执行节点": "#E8F5E8",    # 浅绿色
-            "输出节点": "#FFEBEE",    # 浅红色
+            "整合输出节点": "#FFEBEE",  # 浅红色
         }
         
         # 添加开始和结束节点
