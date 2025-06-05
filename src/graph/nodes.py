@@ -340,141 +340,74 @@ def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
 
 
 def reporter_node(state: State) -> Command[Literal["__end__"]]:
-    """Reporter node that reads all execution summaries and generates final integration."""
-    from src.prompts.template import apply_prompt_template
-    logger.info("Reporter generating final integration")
+    """Reporter node that generates final comprehensive report."""
+    logger.info("Reporter agent generating final comprehensive report")
     
     task_id = state.get("task_id")
     if not task_id:
-        logger.error("没有找到task_id，无法生成最终整合")
+        logger.error("没有找到task_id，无法生成最终报告")
         return Command(goto="__end__")
     
-    # 读取所有执行总结文件
     try:
-        summaries = file_manager.read_all_summaries(task_id)
-        files_info = file_manager.get_task_files_info(task_id)
+        # 直接使用LLM和模板生成报告，避免循环导入
+        from src.prompts.template import apply_prompt_template
         
-        logger.info(f"读取到 {len(summaries)} 个执行总结文件")
-        for summary in summaries:
-            logger.info(f"  - {summary['agent_name']}: {summary['file_path']}")
+        logger.info(f"开始为任务 {task_id} 生成最终报告")
+        messages = apply_prompt_template("reporter", state)
         
-        # 构建整合提示内容
-        integration_context = f"""
-# 任务整合要求
-
-基于以下执行总结文件，生成最终的用户友好输出：
-
-## 原始计划
-{state.get('full_plan', '无计划信息')}
-
-## 执行总结文件
-"""
+        # 获取reporter使用的LLM
+        llm = get_llm_by_type(AGENT_LLM_MAP["reporter"])
         
-        for summary in summaries:
-            integration_context += f"""
-### {summary['agent_name'].upper()} 总结
-文件路径: {summary['file_path']}
-
-{summary['content'][:1000]}...
-
----
-"""
+        # 创建包含工具的智能体
+        from src.tools.file_info_tool import task_files_json_tool
+        from langgraph.prebuilt import create_react_agent
         
-        integration_context += """
-
-## 整合输出要求
-
-请生成一个专业的、用户友好的最终报告，包括：
-1. 礼貌的用户问候
-2. 任务完成情况总结
-3. 按类型组织的关键结果
-4. 生成的文件列表
-5. 后续服务提示
-
-输出格式要求：
-- 使用markdown格式
-- 结构清晰，层次分明
-- 语言专业且友好
-- 重点突出关键成果
-"""
+        temp_reporter_agent = create_react_agent(
+            llm,
+            tools=[task_files_json_tool]
+        )
         
-        # 调用LLM生成最终整合
-        messages = apply_prompt_template("reporter", state)  # 使用reporter模板
+        # 调用智能体生成报告
+        result = temp_reporter_agent.invoke({"messages": messages})
+        logger.info("Reporter agent completed final report generation")
         
-        # 替换最后一条消息为整合上下文
-        if messages:
-            messages[-1].content = integration_context
+        # 获取reporter的响应内容
+        final_content = result["messages"][-1].content
         
-        response = get_llm_by_type("basic").invoke(messages)
-        final_content = response.content
+        # 生成执行总结文件
+        execution_summaries = state.get("execution_summaries", [])
         
-        # 保存最终整合文件
-        final_file_path = file_manager.save_final_integration(task_id, final_content)
-        logger.info(f"最终整合报告已保存到: {final_file_path}")
+        if task_id:
+            try:
+                summary = file_manager.save_execution_summary(
+                    task_id=task_id,
+                    agent_name="reporter", 
+                    result_content=final_content,
+                    original_messages=state["messages"]
+                )
+                execution_summaries.append(summary)
+                logger.info(f"Reporter总结已保存到: {summary['file_path']}")
+            except Exception as e:
+                logger.error(f"保存Reporter总结失败: {e}")
         
-        # 生成用户展示内容
-        display_content = f"""
-# 🎯 任务执行完成
-
-尊敬的用户，我已完成您的任务请求。以下是详细的执行结果：
-
-## 📊 执行概览
-
-- **任务ID**: {task_id}
-- **完成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-- **执行节点数**: {len(summaries)}
-- **生成文件数**: {len(files_info.get('summary_files', [])) + 2}  # +2 for plan and final
-
-## 📁 生成文件
-
-### 📋 执行计划
-- `plan.md` - 原始任务执行计划
-
-### 📄 执行总结文件
-"""
-
-        for summary in summaries:
-            agent_name = summary['agent_name']
-            file_name = f"{agent_name}_summary.md"
-            display_content += f"- `{file_name}` - {agent_name.capitalize()} 节点执行总结\n"
-
-        display_content += f"""
-### 🎯 最终整合报告
-- `final_integration.md` - 完整的任务执行总结和结论
-
-## 💡 查看方式
-
-所有文件已保存到目录: `{files_info.get('task_directory', 'unknown')}`
-
-您可以通过以下方式查看：
-1. 直接打开markdown文件进行预览
-2. 使用markdown阅读器查看格式化内容
-3. 集成到您的文档系统中
-
-{final_content}
-
----
-
-如需进一步讨论或有任何问题，请随时告知。
-"""
-        
-        logger.debug(f"最终整合内容: {display_content[:500]}...")
+        logger.debug(f"Reporter最终内容: {final_content[:500]}...")
         
         return Command(
             update={
                 "messages": [
                     HumanMessage(
-                        content=display_content,
+                        content=final_content,
                         name="reporter",
                     )
-                ]
+                ],
+                "execution_summaries": execution_summaries
             },
             goto="__end__",
         )
         
     except Exception as e:
-        logger.error(f"生成最终整合失败: {e}")
-        error_message = f"抱歉，在生成最终报告时遇到错误: {str(e)}"
+        logger.error(f"Reporter生成最终报告失败: {e}")
+        error_message = f"抱歉，Reporter在生成最终报告时遇到错误: {str(e)}"
         
         return Command(
             update={

@@ -12,6 +12,7 @@ from src.tools import (
     oracle_relationships_tool,
     document_analysis_tool,
 )
+from src.tools.file_info_tool import task_files_json_tool
 
 from .llm import get_llm_by_type
 from src.config.agents import AGENT_LLM_MAP
@@ -45,4 +46,10 @@ document_parser_agent = create_react_agent(
     get_llm_by_type(AGENT_LLM_MAP["document_parser"]),
     tools=[document_analysis_tool],
     prompt=lambda state: apply_prompt_template("document_parser", state),
+)
+
+reporter_agent = create_react_agent(
+    get_llm_by_type(AGENT_LLM_MAP["reporter"]),
+    tools=[task_files_json_tool],
+    prompt=lambda state: apply_prompt_template("reporter", state),
 )
