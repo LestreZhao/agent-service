@@ -7,188 +7,290 @@ alwaysApply: false
 
 这个目录包含了 FusionAI 项目的 Cursor AI 辅助开发规则，帮助 AI 更好地理解和协助项目开发。
 
-## 规则文件说明
+## 📚 规则文件分类
 
-### 🎯 综合指南
+### 🎯 综合指南 (必读)
 
-### [fusionai-overview.mdc](mdc:.cursor/rules/fusionai-overview.mdc)  
-**FusionAI项目综合概览** - 最重要的入门规则
-- 项目简介和技术栈
-- 完整的项目结构说明
-- 核心模块详解
+#### [fusionai-overview.mdc](mdc:.cursor/rules/fusionai-overview.mdc)  
+**FusionAI项目综合概览** - 🌟 **最重要的入门规则**
+- 项目简介和技术栈完整说明
+- 详细的项目结构和模块架构
+- 核心组件和工作流程
 - 开发原则和命名规范
-- 关键文件引用
+- 关键文件索引和配置说明
 
-### [tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc)
-**工具集成完整指南**
-- 工具架构和设计模式
-- 所有核心工具详细说明
-- 装饰器系统使用
-- 开发规范和性能优化
-- 测试和故障排除
+#### [tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc)
+**工具集成完整指南** - 🔧 **核心开发参考**
+- 完整的工具架构设计模式
+- 所有核心工具详细使用说明
+- 装饰器系统和性能优化
+- 开发规范和测试指南
+- 故障排除和最佳实践
 
 ### 🏗️ 核心架构规则
 
-### [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)  
-项目整体架构指南，包含：
-- 目录结构说明
+#### [project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)  
+**项目架构指南**
+- 完整目录结构说明
 - 核心文件功能介绍
-- 智能体类型概览
+- 智能体类型和职责概览
+- 模块依赖关系图
 
-### [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc)
-LangGraph工作流开发规则，包含：
-- LangGraph架构概述
-- 工作流构建方法
-- 智能体集成模式
-- 节点和状态管理
+#### [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc)
+**LangGraph工作流开发**
+- LangGraph架构深度解析
+- 工作流构建最佳实践
+- 智能体集成和协作模式
+- 节点设计和状态管理
 
-### 🔧 环境和配置规则
+#### [ai-integration.mdc](mdc:.cursor/rules/ai-integration.mdc)
+**AI集成综合指南**
+- LLM模型配置和选择
+- 智能体设计模式
+- 提示词工程和优化
+- 多模态AI集成策略
 
-### [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)
-环境设置和配置规则，包含：
-- Python环境配置
-- 依赖管理指南
-- 环境变量配置
-- 常见问题解决
+#### [development-workflow.mdc](mdc:.cursor/rules/development-workflow.mdc)
+**开发工作流程**
+- 完整开发流程指南
+- 代码审查和质量控制
+- 测试驱动开发实践
+- 持续集成部署流程
 
-### [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
-浏览器配置相关规则，包含：
-- browser-use 库的配置方法
-- 常见浏览器启动问题解决方案
-- 版本兼容性说明
+### 🔧 环境和配置
 
-### 📝 开发规范规则
+#### [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)
+**环境设置配置**
+- Python环境和依赖管理
+- 开发工具配置指南
+- 环境变量和密钥管理
+- 常见安装问题解决
 
-### [development-guidelines.mdc](mdc:.cursor/rules/development-guidelines.mdc)
-开发规范和最佳实践，包含：
-- 环境设置指南
-- 代码规范要求
-- 调试方法说明
+#### [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
+**浏览器配置管理**
+- browser-use 库详细配置
+- 浏览器启动和调试
+- 版本兼容性解决方案
+- 自动化测试配置
 
-### [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc)
-Python开发最佳实践，包含：
-- 代码风格规范
-- 性能优化建议
+#### [chinese-development.mdc](mdc:.cursor/rules/chinese-development.mdc)
+**中文开发环境配置** - 🇨🇳 **本地化专项规则**
+- 中文编码和字符处理
+- AI模型中文优化配置
+- 中文文档和注释规范
+- 中文数据处理和搜索
+- 中文用户界面设计
+
+### 📝 开发规范和质量
+
+#### [coding-standards.mdc](mdc:.cursor/rules/coding-standards.mdc)
+**代码规范标准**
+- Python代码风格指南
+- 文档编写规范
+- 变量命名和结构设计
+- 代码审查检查清单
+
+#### [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc)
+**Python最佳实践**
+- 性能优化技巧
+- 内存管理和资源控制
+- 异步编程模式
 - 安全编程指南
 
-### [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc)
-测试和代码质量规则，包含：
-- 测试框架使用指南
-- 代码质量工具配置
-- 开发最佳实践
-- 性能优化建议
+#### [development-guidelines.mdc](mdc:.cursor/rules/development-guidelines.mdc)
+**开发指南准则**
+- 团队协作规范
+- 功能开发流程
+- 调试和测试方法
+- 版本管理策略
 
-### 🌐 API和集成规则
+#### [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc)
+**测试和质量保证**
+- 单元测试框架使用
+- 集成测试策略
+- 代码覆盖率要求
+- 性能测试实施
 
-### [api-development.mdc](mdc:.cursor/rules/api-development.mdc)
-API开发规范，包含：
-- FastAPI应用开发
-- RESTful设计原则
-- 中间件配置
-- 异步处理模式
+### 🌐 API和服务集成
 
-### [api-integration.mdc](mdc:.cursor/rules/api-integration.mdc)
-API集成和外部服务规则，包含：
+#### [api-development.mdc](mdc:.cursor/rules/api-development.mdc)
+**API开发规范**
+- FastAPI应用设计
+- RESTful API最佳实践
+- 中间件和安全配置
+- 异步处理和错误管理
+
+#### [api-integration.mdc](mdc:.cursor/rules/api-integration.mdc)
+**外部API集成**
 - LLM API集成模式
-- 搜索和网页抓取API
-- 浏览器自动化配置
-- API安全和错误处理
+- 第三方服务集成
+- API密钥管理和安全
+- 限流和重试策略
 
-### 📊 数据处理和分析规则
+### 📊 数据处理和分析
 
-### [data-processing.mdc](mdc:.cursor/rules/data-processing.mdc)
-数据处理和分析规则，包含：
+#### [data-processing.mdc](mdc:.cursor/rules/data-processing.mdc)
+**数据处理分析**
 - 数据处理框架使用
 - Python执行环境配置
 - 数据清理和验证
 - 金融数据分析
-- 数据库集成
+- 数据库集成操作
 - 性能优化策略
 
-### 🤖 工作流和模式规则
+### 🤖 AI智能体和工作流
 
-### [ai-agent-patterns.mdc](mdc:.cursor/rules/ai-agent-patterns.mdc)
-AI智能体设计模式，包含：
-- 智能体架构模式
-- 协作机制设计
-- 任务分发策略
+#### [ai-agent-patterns.mdc](mdc:.cursor/rules/ai-agent-patterns.mdc)
+**AI智能体设计模式**
+- 智能体架构设计
+- 协作机制实现
+- 任务分发和调度
+- 状态管理和同步
 
-### [session-management.mdc](mdc:.cursor/rules/session-management.mdc)
-会话管理规则，包含：
-- 用户会话处理
-- 状态保持机制
-- 并发会话管理
+#### [session-management.mdc](mdc:.cursor/rules/session-management.mdc)
+**会话管理系统**
+- 用户会话生命周期
+- 状态持久化机制
+- 并发会话处理
+- 内存和资源管理
 
-### [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
-性能优化规则，包含：
+#### [workflow-diagram-generator.mdc](mdc:.cursor/rules/workflow-diagram-generator.mdc)
+**工作流图表生成**
+- 流程图自动生成
+- 工作流可视化
+- 图表样式和布局
+- 导出和分享功能
+
+### ⚡ 性能和优化
+
+#### [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
+**性能优化指南**
 - 系统性能监控
 - 资源使用优化
 - 缓存策略实现
+- 数据库查询优化
+- 异步处理优化
 
-### 🔨 运维和故障处理规则
+### 🔨 运维和故障处理
 
-### [git-workflow.mdc](mdc:.cursor/rules/git-workflow.mdc)
-Git工作流规范，包含：
+#### [git-workflow.mdc](mdc:.cursor/rules/git-workflow.mdc)
+**Git工作流规范**
 - 分支管理策略
-- 提交规范要求
+- 提交规范和消息格式
 - 代码审查流程
+- 发布和标签管理
 
-### [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
-故障排除手册，包含：
-- 常见错误及解决方案
-- 诊断步骤指南
-- 调试技巧总结
+#### [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
+**故障排除手册**
+- 常见错误诊断
+- 系统故障恢复
+- 性能问题分析
+- 调试工具使用
 
-## 🚀 快速开始
+#### [debugging-troubleshooting.mdc](mdc:.cursor/rules/debugging-troubleshooting.mdc)
+**调试和故障排除**
+- 深度调试技巧
+- 日志分析方法
+- 错误追踪策略
+- 系统监控工具
 
-### 新开发者推荐阅读顺序：
-1. **[fusionai-overview.mdc](mdc:.cursor/rules/fusionai-overview.mdc)** - 了解项目全貌
-2. **[environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)** - 设置开发环境
-3. **[tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc)** - 掌握工具使用
-4. **[api-development.mdc](mdc:.cursor/rules/api-development.mdc)** - 开始开发
+## 🚀 快速开始指南
 
-### 针对特定任务：
-- **🔧 环境问题**: [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
-- **🌐 API开发**: [api-development.mdc](mdc:.cursor/rules/api-development.mdc)
-- **🤖 智能体开发**: [ai-agent-patterns.mdc](mdc:.cursor/rules/ai-agent-patterns.mdc)
-- **📊 数据处理**: [data-processing.mdc](mdc:.cursor/rules/data-processing.mdc)
-- **⚡ 性能优化**: [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
+### 新开发者必读顺序：
+1. **[fusionai-overview.mdc](mdc:.cursor/rules/fusionai-overview.mdc)** - 🎯 了解项目全貌和核心概念
+2. **[environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)** - 🔧 设置完整开发环境
+3. **[project-structure.mdc](mdc:.cursor/rules/project-structure.mdc)** - 🏗️ 理解项目架构
+4. **[tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc)** - 🛠️ 掌握工具集成方法
+5. **[development-workflow.mdc](mdc:.cursor/rules/development-workflow.mdc)** - 📋 学习开发流程
 
-## 使用说明
+### 专项任务快速索引：
 
-这些规则会自动被 Cursor AI 加载，帮助：
-1. **代码理解** - 快速了解项目结构和设计理念
-2. **问题诊断** - 根据错误信息快速定位问题
-3. **开发辅助** - 遵循项目规范进行代码修改
-4. **配置管理** - 正确设置开发环境和依赖
-5. **数据分析** - 进行数据处理和分析任务
-6. **API集成** - 正确集成外部服务和API
-7. **工具开发** - 开发和集成新的工具模块
+#### 🔧 环境和配置问题
+- **环境搭建**: [environment-setup.mdc](mdc:.cursor/rules/environment-setup.mdc)
+- **浏览器配置**: [browser-configuration.mdc](mdc:.cursor/rules/browser-configuration.mdc)
+- **中文本地化**: [chinese-development.mdc](mdc:.cursor/rules/chinese-development.mdc)
+- **故障排除**: [troubleshooting.mdc](mdc:.cursor/rules/troubleshooting.mdc)
 
-## 维护说明
+#### 🌐 API和服务开发
+- **API开发**: [api-development.mdc](mdc:.cursor/rules/api-development.mdc)
+- **外部集成**: [api-integration.mdc](mdc:.cursor/rules/api-integration.mdc)
+- **AI集成**: [ai-integration.mdc](mdc:.cursor/rules/ai-integration.mdc)
 
-当项目结构或配置发生重大变化时，请及时更新相关规则文件，确保 AI 辅助的准确性。
+#### 🤖 智能体和工作流
+- **智能体开发**: [ai-agent-patterns.mdc](mdc:.cursor/rules/ai-agent-patterns.mdc)
+- **工作流设计**: [langgraph-workflow.mdc](mdc:.cursor/rules/langgraph-workflow.mdc)
+- **会话管理**: [session-management.mdc](mdc:.cursor/rules/session-management.mdc)
 
-### 更新时机
-- 添加新的智能体类型或工具
-- 修改浏览器配置方式  
-- 更新依赖库版本
-- 改变项目结构
-- 新增API集成
-- 修改工作流模式
-- 添加新的数据源
-- 更新数据处理方法
+#### 📊 数据处理分析
+- **数据处理**: [data-processing.mdc](mdc:.cursor/rules/data-processing.mdc)
+- **Python执行**: [python-best-practices.mdc](mdc:.cursor/rules/python-best-practices.mdc)
 
-### 文件格式
-- 使用 `.mdc` 扩展名
-- 支持 Markdown 语法
-- 使用 `[filename](mdc:filename)` 引用项目文件
+#### ⚡ 性能和质量
+- **性能优化**: [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
+- **代码质量**: [testing-and-quality.mdc](mdc:.cursor/rules/testing-and-quality.mdc)
+- **调试技巧**: [debugging-troubleshooting.mdc](mdc:.cursor/rules/debugging-troubleshooting.mdc)
 
-### 规则分类
-- **🎯 综合指南**: 项目概览、工具集成
-- **🏗️ 核心架构**: 项目结构、工作流设计
+## 💡 使用说明
+
+### AI辅助功能
+这些规则会自动被 Cursor AI 加载，提供以下帮助：
+
+1. **🎯 项目理解** - 快速掌握项目结构和设计理念
+2. **🔍 问题诊断** - 根据错误信息快速定位和解决问题
+3. **⚡ 开发加速** - 遵循项目规范进行高效代码开发
+4. **🔧 配置管理** - 正确设置开发环境和依赖关系
+5. **📊 数据分析** - 协助数据处理和分析任务实现
+6. **🌐 API集成** - 正确集成外部服务和第三方API
+7. **🛠️ 工具开发** - 开发和集成新的工具模块
+8. **🤖 智能体设计** - 创建和优化AI智能体协作
+
+### 规则优先级
+- **🌟 高优先级**: fusionai-overview.mdc, tools-integration.mdc
+- **⭐ 中优先级**: 具体开发任务相关规则
+- **💫 参考级**: 运维和故障处理规则
+
+## 🔄 维护和更新
+
+### 更新触发条件
+请在以下情况发生时及时更新相关规则：
+
+#### 📁 项目结构变更
+- 添加新的智能体类型或工具模块
+- 修改目录结构或重要文件位置
+- 更新核心依赖库版本
+- 改变工作流设计模式
+
+#### 🔧 配置和环境变更
+- 修改浏览器或环境配置方式
+- 更新API集成方法
+- 添加新的数据源或处理方法
+- 改变部署和运维策略
+
+#### 📋 开发流程变更
+- 更新代码规范要求
+- 修改测试策略
+- 改变Git工作流程
+- 更新文档标准
+
+### 🗂️ 文件管理规范
+
+#### 文件格式要求
+- **扩展名**: 使用 `.mdc` 扩展名
+- **语法**: 支持标准 Markdown 语法
+- **引用格式**: 使用 `[filename](mdc:filename)` 引用项目文件
+- **编码**: UTF-8 编码
+
+#### 规则分类标签
+- **🎯 综合指南**: 项目概览、核心集成
+- **🏗️ 核心架构**: 项目结构、工作流设计  
 - **🔧 环境配置**: 开发环境、依赖管理
-- **📝 开发规范**: 代码质量、测试规范
+- **📝 开发规范**: 代码质量、开发流程
 - **🌐 API集成**: 外部服务、接口设计
-- **📊 数据处理**: 数据分析、数据库集成
-- **�� 运维管理**: 故障处理、性能优化
+- **📊 数据处理**: 数据分析、存储集成
+- **🤖 AI智能体**: 智能体设计、协作模式
+- **⚡ 性能优化**: 系统优化、资源管理
+- **🔨 运维管理**: 故障处理、部署运维
+
+---
+
+> **💡 提示**: 建议开发者首先通读综合指南，然后根据具体开发任务参考相应的专项规则。所有规则都会持续更新以保持与项目发展同步。

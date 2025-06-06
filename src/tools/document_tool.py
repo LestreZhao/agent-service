@@ -135,7 +135,7 @@ def analyze_document_content_tool(document_url: str, analysis_request: str = "")
     文档解析分析工具 - 接收可访问的URL和用户需求，获取文件并解析分析
     
     Args:
-        document_url: 可访问的文档URL
+        document_url: 可访问的文档URL或文件ID
         analysis_request: 用户的分析要求
         
     Returns:
@@ -185,8 +185,34 @@ def analyze_document_content_tool(document_url: str, analysis_request: str = "")
                 "source_type": "file_storage"
             }, ensure_ascii=False, indent=2)
         
+        # 检查是否是内部API URL格式
+        elif "/api/documents/" in document_url and any(endpoint in document_url for endpoint in ["/content", "/info", "/analyze"]):
+            # 从API URL中提取文件ID
+            try:
+                # 匹配 /api/documents/{file_id}/xxx 格式
+                api_pattern = r'/api/documents/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})'
+                match = re.search(api_pattern, document_url)
+                
+                if match:
+                    file_id = match.group(1)
+                    # 递归调用，使用提取的文件ID
+                    return analyze_document_content_tool(file_id, analysis_request)
+                else:
+                    return json.dumps({
+                        "error": f"无法从API URL中提取有效的文件ID: {document_url}",
+                        "success": False,
+                        "input_received": document_url
+                    }, ensure_ascii=False)
+                    
+            except Exception as e:
+                return json.dumps({
+                    "error": f"解析API URL失败: {str(e)}",
+                    "success": False,
+                    "input_received": document_url
+                }, ensure_ascii=False)
+        
         else:
-            # 这是一个URL，下载并解析文档
+            # 这是一个外部URL，下载并解析文档
             parse_result = download_and_parse_document(document_url)
             
             if not parse_result["success"]:
