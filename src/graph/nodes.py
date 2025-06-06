@@ -230,6 +230,47 @@ def document_parser_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+def chart_generator_node(state: State) -> Command[Literal["supervisor"]]:
+    """Node for the chart generator agent that creates ECharts visualizations."""
+    from src.agents import chart_generator_agent
+    logger.info("Chart generator agent starting task")
+    result = chart_generator_agent.invoke(state)
+    logger.info("Chart generator agent completed task")
+    logger.debug(f"Chart generator agent response: {result['messages'][-1].content}")
+    
+    # 生成执行总结文件
+    task_id = state.get("task_id")
+    execution_summaries = state.get("execution_summaries", [])
+    
+    if task_id:
+        try:
+            summary = file_manager.save_execution_summary(
+                task_id=task_id,
+                agent_name="chart_generator", 
+                result_content=result["messages"][-1].content,
+                original_messages=state["messages"]
+            )
+            execution_summaries.append(summary)
+            logger.info(f"图表生成总结已保存到: {summary['file_path']}")
+        except Exception as e:
+            logger.error(f"保存图表生成总结失败: {e}")
+    
+    return Command(
+        update={
+            "messages": [
+                HumanMessage(
+                    content=RESPONSE_FORMAT.format(
+                        "chart_generator", result["messages"][-1].content
+                    ),
+                    name="chart_generator",
+                )
+            ],
+            "execution_summaries": execution_summaries
+        },
+        goto="supervisor",
+    )
+
+
 def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     """Supervisor node that decides which agent should act next."""
     from src.prompts.template import apply_prompt_template

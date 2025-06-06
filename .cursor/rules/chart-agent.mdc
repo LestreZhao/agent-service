@@ -1,0 +1,303 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 图表智能体开发指南
+
+## 概述
+
+图表智能体（Chart Generator Agent）是 FusionAI 框架中专门负责数据可视化的智能体，能够根据用户需求和数据特征自动生成 ECharts 图表配置。
+
+## 架构组件
+
+### 1. 核心组件
+
+```
+src/tools/chart_tool.py          # 图表生成工具
+src/agents/agents.py             # 智能体定义
+src/prompts/chart_generator.md   # 智能体提示词
+src/graph/nodes.py               # 工作流节点
+```
+
+### 2. 配置文件
+
+```
+src/config/agents.py             # 智能体LLM映射
+src/config/__init__.py           # 团队成员配置
+src/graph/builder.py             # 图形构建器
+```
+
+## 功能特性
+
+### 1. 图表生成工具
+
+**支持的数据格式：**
+- JSON 数组格式：`[{"name": "A", "value": 100}]`
+- CSV 格式：`"名称,数值\nA,100\nB,200"`
+- 表格格式：`"| 名称 | 数值 |\n| A | 100 |"`
+- 描述性文本：`"销售额: 1000万, 利润: 200万"`
+
+**支持的图表类型：**
+- **柱状图 (bar)** - 适合比较不同类别的数值
+- **折线图 (line)** - 适合展示趋势变化和时间序列
+- **饼图 (pie)** - 适合展示占比和构成关系
+- **散点图 (scatter)** - 适合展示两个变量的相关性
+- **雷达图 (radar)** - 适合多维度指标对比
+- **漏斗图 (funnel)** - 适合展示流程转化率
+- **仪表盘 (gauge)** - 适合展示单一关键指标
+
+### 2. 智能选择算法
+
+```python
+def auto_select_chart_type(data, requirements):
+    # 基于需求关键词选择
+    if "趋势" in requirements: return "line"
+    if "占比" in requirements: return "pie"
+    if "相关" in requirements: return "scatter"
+    
+    # 基于数据特征选择
+    numeric_cols = count_numeric_columns(data)
+    string_cols = count_string_columns(data)
+    
+    if numeric_cols == 1 and string_cols == 1:
+        return "pie" if len(data) <= 10 else "bar"
+    elif numeric_cols > 1:
+        return "line"
+    
+    return "bar"  # 默认
+```
+
+## 使用方式
+
+### 1. 在 LangGraph 工作流中
+
+图表智能体会在以下情况下被 Supervisor 调用：
+- 用户请求包含图表相关关键词
+- 数据分析结果需要可视化展示
+- 报告生成需要图表支持
+
+### 2. 直接调用
+
+```python
+from src.agents import chart_generator_agent
+
+# 调用图表生成智能体
+result = chart_generator_agent.invoke({
+    "messages": [HumanMessage(content="请为以下数据生成柱状图...")]
+})
+```
+
+### 3. 工具直接调用
+
+```python
+from src.tools.chart_tool import chart_generation_tool
+
+# 直接使用工具
+chart_config = chart_generation_tool.invoke({
+    "data_input": '[{"name": "产品A", "sales": 1000}]',
+    "chart_type": "bar",
+    "chart_title": "产品销售额对比",
+    "analysis_requirements": "展示各产品销售对比"
+})
+```
+
+## 开发规范
+
+### 1. 代码规范
+
+**图表配置结构：**
+```python
+{
+    "success": True,
+    "chart_type": "bar",
+    "chart_config": {
+        "title": {"text": "图表标题"},
+        "xAxis": {"type": "category", "data": []},
+        "yAxis": {"type": "value"},
+        "series": [{"type": "bar", "data": []}]
+    },
+    "data_summary": {
+        "records_count": 10,
+        "columns": ["name", "value"],
+        "chart_title": "标题"
+    }
+}
+```
+
+**错误处理：**
+```python
+try:
+    chart_config = generate_chart_config(data, chart_type, title, requirements)
+    return {"success": True, "chart_config": chart_config}
+except Exception as e:
+    return {"success": False, "error": f"生成图表失败: {str(e)}"}
+```
+
+### 2. 提示词规范
+
+- 必须使用中文回答所有问题
+- 不输出思考过程，直接呈现结果
+- 专注于数据分析洞察
+- 提供actionable的建议
+
+### 3. 数据处理规范
+
+**数据解析优先级：**
+1. JSON 格式（以 `{` 或 `[` 开头）
+2. CSV 格式（包含 `,` 和 `\n`）
+3. 表格格式（包含 `|`）
+4. 描述性文本（正则提取）
+
+**类型推断：**
+```python
+def infer_column_type(value):
+    if isinstance(value, (int, float)):
+        return "number"
+    try:
+        float(value)
+        return "number"
+    except:
+        return "string"
+```
+
+## 集成配置
+
+### 1. 智能体配置
+
+```python
+# src/config/agents.py
+AGENT_LLM_MAP = {
+    "chart_generator": "basic",  # 使用 basic LLM
+}
+
+# src/config/__init__.py
+TEAM_MEMBERS = [..., "chart_generator"]
+```
+
+### 2. 工作流配置
+
+```python
+# src/graph/builder.py
+builder.add_node("chart_generator", chart_generator_node)
+```
+
+### 3. 路由配置
+
+Supervisor 会根据以下条件路由到图表智能体：
+- 用户请求包含图表关键词
+- 需要数据可视化分析
+- 生成报告需要图表支持
+
+## 最佳实践
+
+### 1. 图表选择策略
+
+- **数据量小（≤10条）** → 饼图或柱状图
+- **时间序列数据** → 折线图
+- **多维度对比** → 雷达图
+- **相关性分析** → 散点图
+- **流程转化** → 漏斗图
+
+### 2. 性能优化
+
+- 数据预处理在工具层完成
+- 图表配置缓存复用
+- 大数据量时自动采样
+
+### 3. 错误处理
+
+- 数据格式错误时提供清晰提示
+- 图表类型不匹配时自动降级
+- 生成失败时返回详细错误信息
+
+## 扩展开发
+
+### 1. 添加新图表类型
+
+```python
+# 在 chart_tool.py 中添加
+def generate_heatmap_config(records, columns):
+    # 热力图配置生成逻辑
+    pass
+
+# 在 auto_select_chart_type 中添加选择逻辑
+if "热力" in requirements: return "heatmap"
+```
+
+### 2. 增强数据处理
+
+```python
+def parse_excel_data(file_data):
+    # Excel 文件解析逻辑
+    pass
+
+def parse_database_result(query_result):
+    # 数据库结果解析逻辑
+    pass
+```
+
+### 3. 添加图表样式主题
+
+```python
+CHART_THEMES = {
+    "business": {"colors": ["#5470c6", "#91cc75", "#fac858"]},
+    "tech": {"colors": ["#2f4554", "#61a0a8", "#d48265"]},
+    "minimal": {"colors": ["#333", "#666", "#999"]}
+}
+```
+
+## 测试指南
+
+### 1. 单元测试
+
+```python
+def test_chart_generation():
+    data = '[{"name": "A", "value": 100}]'
+    result = chart_generation_tool.invoke({
+        "data_input": data,
+        "chart_type": "bar"
+    })
+    assert result["success"] == True
+    assert "chart_config" in result
+```
+
+### 2. 集成测试
+
+```python
+def test_agent_workflow():
+    state = {"messages": [HumanMessage("生成销售图表")]}
+    result = chart_generator_agent.invoke(state)
+    assert result["messages"][-1].name == "chart_generator"
+```
+
+### 3. 数据格式测试
+
+测试各种数据格式的解析：
+- JSON 数组
+- CSV 文本
+- Markdown 表格
+- 描述性文本
+
+## 监控和调试
+
+### 1. 日志记录
+
+```python
+logger.info(f"图表生成开始 - 数据类型: {chart_type}")
+logger.debug(f"数据解析结果: {parsed_data}")
+logger.info(f"图表配置生成完成 - 记录数: {len(data)}")
+```
+
+### 2. 性能监控
+
+- 数据解析耗时
+- 图表生成耗时
+- 内存使用情况
+- 错误率统计
+
+### 3. 调试技巧
+
+- 使用 `verbose=True` 查看智能体执行过程
+- 检查数据解析的中间结果
+- 验证图表配置的 JSON 格式

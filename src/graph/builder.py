@@ -11,6 +11,7 @@ from .nodes import (
     planner_node,
     db_analyst_node,
     document_parser_node,
+    chart_generator_node,
 )
 
 
@@ -27,4 +28,5 @@ def build_graph():
     builder.add_node("reporter", reporter_node)
     builder.add_node("db_analyst", db_analyst_node)
     builder.add_node("document_parser", document_parser_node)
+    builder.add_node("chart_generator", chart_generator_node)
     return builder.compile()
