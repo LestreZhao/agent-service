@@ -26,6 +26,7 @@ dependencies = [
     "numpy>=2.2.3",
     "yfinance>=0.2.54",
     "langchain-deepseek>=0.1.2",
+    "langchain-google-genai>=2.0.6",
     "firecrawl-py>=1.6.0",
     "cx_Oracle>=8.3.0",
     "minio>=7.2.0",

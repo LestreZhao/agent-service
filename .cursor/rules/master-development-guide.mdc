@@ -1,0 +1,496 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FusionAI 主开发指南
+
+## 🎯 项目愿景与核心价值
+FusionAI 是一个社区驱动的 AI 自动化框架，致力于将大语言模型的智能能力与实用工具深度融合，为开发者提供强大而灵活的 AI 自动化解决方案。
+
+### 核心设计理念
+- **模块化架构**: 每个组件职责单一，易于扩展和维护
+- **中文优先**: 全面支持中文开发环境和用户体验
+- **工具集成**: 深度集成浏览器自动化、网页爬虫、数据处理等实用工具
+- **企业级**: 提供稳定可靠的生产环境支持
+
+## 🏗️ 项目架构总览
+
+### 目录结构说明
+```
+fusionai/
+├── src/                    # 核心源代码
+│   ├── agents/            # AI 智能体实现
+│   ├── api/               # FastAPI Web 服务
+│   ├── config/            # 配置管理
+│   ├── crawler/           # 网页爬虫工具
+│   ├── graph/             # LangGraph 工作流
+│   ├── prompts/           # 提示词模板
+│   ├── service/           # 业务服务层
+│   ├── tools/             # 工具库集合
+│   ├── utils/             # 通用工具函数
+│   └── workflow.py        # 主工作流定义
+├── tests/                 # 测试代码
+├── docs/                  # 项目文档
+├── examples/              # 示例代码
+├── scripts/               # 构建和部署脚本
+├── data/                  # 数据文件
+├── main.py               # 命令行入口
+├── server.py             # Web 服务入口
+└── pyproject.toml        # 项目配置
+```
+
+### 技术栈组合
+- **核心框架**: Python 3.12+, FastAPI, LangChain, LangGraph
+- **AI 模型**: OpenAI GPT-4, DeepSeek, Claude
+- **数据处理**: Pandas, NumPy, PyPDF2, python-docx
+- **网络工具**: httpx, browser-use, firecrawl-py
+- **可视化**: Matplotlib, Plotly, Graphviz, NetworkX
+- **存储**: MinIO, Oracle, Redis (可选)
+
+## 🛠️ 开发环境配置
+
+### 环境准备
+```bash
+# 1. 确保 Python 3.12+ 环境
+python --version
+
+# 2. 安装 uv 包管理器 (推荐)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 3. 克隆项目并安装依赖
+git clone <repository-url>
+cd fusionai
+uv sync
+
+# 4. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置 API 密钥
+```
+
+### 必需的环境变量
+```bash
+# AI 模型配置
+OPENAI_API_KEY=your_openai_key
+DEEPSEEK_API_KEY=your_deepseek_key
+ANTHROPIC_API_KEY=your_claude_key
+
+# 数据库配置 (可选)
+DATABASE_URL=your_database_url
+
+# 其他服务配置
+MINIO_ENDPOINT=your_minio_endpoint
+MINIO_ACCESS_KEY=your_access_key
+MINIO_SECRET_KEY=your_secret_key
+```
+
+## 📋 开发工作流程
+
+### 1. 功能开发流程
+```bash
+# 创建功能分支
+git checkout -b feature/new-feature-name
+
+# 开发过程中的常用命令
+uv run python main.py          # 命令行测试
+uv run python server.py        # 启动 Web 服务
+uv run pytest tests/           # 运行测试
+uv run black src/              # 代码格式化
+
+# 提交代码
+git add .
+git commit -m "feat: 添加新功能描述"
+git push origin feature/new-feature-name
+```
+
+### 2. 代码质量检查
+```bash
+# 代码格式化
+uv run black src/ tests/
+
+# 类型检查 (如果配置了 mypy)
+uv run mypy src/
+
+# 测试覆盖率
+uv run pytest --cov=src --cov-report=html
+```
+
+### 3. 调试和测试
+- **单元测试**: 每个模块都应有对应的测试文件
+- **集成测试**: 测试 API 端点和工作流完整性
+- **性能测试**: 关注响应时间和资源使用
+- **中文测试**: 确保中文输入输出正确处理
+
+## 🎨 编码规范
+
+### Python 代码风格
+```python
+# 文件头部模板
+"""
+模块名称: 模块功能简述
+
+该模块实现了...的功能，主要包含以下类和函数:
+- ClassName: 类的功能描述
+- function_name: 函数的功能描述
+
+作者: 开发者姓名
+创建时间: YYYY-MM-DD
+"""
+
+import asyncio
+import logging
+from typing import Dict, List, Optional, Union
+from dataclasses import dataclass
+from pathlib import Path
+
+# 配置日志
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ConfigModel:
+    """配置数据模型
+    
+    使用 dataclass 定义配置结构，提供类型提示和默认值。
+    """
+    api_key: str
+    timeout: int = 30
+    max_retries: int = 3
+
+
+class FusionAIComponent:
+    """FusionAI 组件基类
+    
+    所有 FusionAI 组件都应继承此基类，确保统一的接口和行为。
+    """
+    
+    def __init__(self, config: ConfigModel):
+        """初始化组件
+        
+        Args:
+            config: 组件配置对象
+        """
+        self.config = config
+        self._initialized = False
+    
+    async def initialize(self) -> None:
+        """异步初始化组件
+        
+        执行需要异步操作的初始化逻辑。
+        """
+        if self._initialized:
+            return
+        
+        # 初始化逻辑
+        logger.info(f"正在初始化 {self.__class__.__name__}")
+        self._initialized = True
+    
+    async def cleanup(self) -> None:
+        """清理资源
+        
+        释放组件占用的资源，如连接、文件句柄等。
+        """
+        logger.info(f"正在清理 {self.__class__.__name__} 资源")
+```
+
+### 命名约定
+- **文件名**: `snake_case.py` (例: `web_crawler.py`)
+- **类名**: `PascalCase` (例: `WebCrawler`)
+- **函数/方法**: `snake_case` (例: `crawl_website`)
+- **变量**: `snake_case` (例: `user_input`)
+- **常量**: `UPPER_SNAKE_CASE` (例: `MAX_RETRY_COUNT`)
+- **私有成员**: `_leading_underscore` (例: `_internal_method`)
+
+### 中文注释规范
+```python
+def process_chinese_text(text: str, encoding: str = "utf-8") -> str:
+    """处理中文文本内容
+    
+    对输入的中文文本进行标准化处理，包括编码转换、
+    特殊字符清理和格式规范化。
+    
+    Args:
+        text: 待处理的中文文本
+        encoding: 文本编码格式，默认为 UTF-8
+        
+    Returns:
+        处理后的标准化中文文本
+        
+    Raises:
+        UnicodeDecodeError: 当文本编码不正确时
+        ValueError: 当输入文本为空时
+        
+    Example:
+        >>> text = "这是一段测试文本"
+        >>> result = process_chinese_text(text)
+        >>> print(result)
+        这是一段测试文本
+    """
+    if not text:
+        raise ValueError("输入文本不能为空")
+    
+    # 确保文本使用正确的编码
+    if isinstance(text, bytes):
+        text = text.decode(encoding)
+    
+    # 清理和标准化处理
+    cleaned_text = text.strip()  # 移除首尾空白
+    
+    return cleaned_text
+```
+
+## 🔧 核心组件开发指南
+
+### 1. 智能体 (Agents) 开发
+```python
+from src.agents.base import BaseAgent
+from src.tools.base import BaseTool
+
+class CustomAgent(BaseAgent):
+    """自定义智能体
+    
+    实现特定领域的智能体功能。
+    """
+    
+    def __init__(self, name: str, tools: List[BaseTool]):
+        super().__init__(name)
+        self.tools = tools
+    
+    async def execute_task(self, task: str) -> dict:
+        """执行任务
+        
+        Args:
+            task: 任务描述
+            
+        Returns:
+            执行结果字典
+        """
+        # 任务执行逻辑
+        result = await self._process_with_llm(task)
+        return {"status": "success", "result": result}
+```
+
+### 2. 工具 (Tools) 开发
+```python
+from src.tools.base import BaseTool
+
+class WebScrapingTool(BaseTool):
+    """网页抓取工具
+    
+    提供网页内容抓取和解析功能。
+    """
+    
+    name = "web_scraping"
+    description = "抓取和解析网页内容"
+    
+    async def execute(self, url: str, **kwargs) -> dict:
+        """执行网页抓取
+        
+        Args:
+            url: 目标网页 URL
+            **kwargs: 其他参数
+            
+        Returns:
+            抓取结果
+        """
+        try:
+            # 实现抓取逻辑
+            content = await self._fetch_content(url)
+            return {"success": True, "content": content}
+        except Exception as e:
+            logger.error(f"网页抓取失败: {e}")
+            return {"success": False, "error": str(e)}
+```
+
+### 3. API 端点开发
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+
+router = APIRouter(prefix="/api/v1", tags=["智能体"])
+
+class TaskRequest(BaseModel):
+    """任务请求模型"""
+    task_description: str
+    agent_type: str = "default"
+    parameters: dict = {}
+
+class TaskResponse(BaseModel):
+    """任务响应模型"""
+    task_id: str
+    status: str
+    result: dict
+    message: str
+
+@router.post("/execute-task", response_model=TaskResponse)
+async def execute_task(request: TaskRequest):
+    """执行智能体任务
+    
+    接收任务描述，调用相应的智能体执行任务。
+    """
+    try:
+        # 获取智能体实例
+        agent = get_agent(request.agent_type)
+        
+        # 执行任务
+        result = await agent.execute_task(
+            request.task_description,
+            **request.parameters
+        )
+        
+        return TaskResponse(
+            task_id=generate_task_id(),
+            status="completed",
+            result=result,
+            message="任务执行成功"
+        )
+    
+    except Exception as e:
+        logger.error(f"任务执行失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"任务执行失败: {str(e)}"
+        )
+```
+
+## 🧪 测试策略
+
+### 测试文件组织
+```
+tests/
+├── unit/                  # 单元测试
+│   ├── test_agents.py
+│   ├── test_tools.py
+│   └── test_utils.py
+├── integration/           # 集成测试
+│   ├── test_api.py
+│   └── test_workflow.py
+├── fixtures/              # 测试数据
+│   ├── sample_data.json
+│   └── mock_responses.py
+└── conftest.py           # pytest 配置
+```
+
+### 测试示例
+```python
+import pytest
+from unittest.mock import AsyncMock, patch
+from src.agents.web_agent import WebAgent
+
+class TestWebAgent:
+    """Web 智能体测试类"""
+    
+    @pytest.fixture
+    async def web_agent(self):
+        """创建 Web 智能体实例"""
+        agent = WebAgent("test_agent")
+        await agent.initialize()
+        return agent
+    
+    @pytest.mark.asyncio
+    async def test_execute_search_task(self, web_agent):
+        """测试搜索任务执行"""
+        task = "搜索 Python 异步编程相关资料"
+        
+        with patch('src.tools.search_tool.SearchTool.execute') as mock_search:
+            mock_search.return_value = {
+                "success": True,
+                "results": ["结果1", "结果2"]
+            }
+            
+            result = await web_agent.execute_task(task)
+            
+            assert result["status"] == "success"
+            assert "results" in result
+            mock_search.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_chinese_text_processing(self, web_agent):
+        """测试中文文本处理"""
+        chinese_text = "这是一段中文测试文本"
+        result = await web_agent.process_text(chinese_text)
+        
+        assert isinstance(result, str)
+        assert len(result) > 0
+        # 验证中文字符正确处理
+        assert "中文" in result
+```
+
+## 🚀 部署和运维
+
+### 本地开发部署
+```bash
+# 启动开发服务器
+uv run python server.py
+
+# 或使用 uvicorn 直接启动
+uv run uvicorn src.api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 生产环境部署
+```bash
+# 使用 Docker 部署
+docker build -t fusionai:latest .
+docker run -d -p 8000:8000 --env-file .env fusionai:latest
+
+# 或使用 docker-compose
+docker-compose up -d
+```
+
+### 监控和日志
+```python
+# 配置结构化日志
+import structlog
+
+logger = structlog.get_logger()
+
+# 记录关键操作
+logger.info(
+    "任务执行完成",
+    task_id=task_id,
+    agent_type=agent_type,
+    execution_time=execution_time,
+    success=True
+)
+```
+
+## 📚 相关资源
+
+### 核心规则文件
+- [project-overview.mdc](mdc:.cursor/rules/project-overview.mdc): 项目总体概览
+- [chinese-development.mdc](mdc:.cursor/rules/chinese-development.mdc): 中文开发规范
+- [api-development.mdc](mdc:.cursor/rules/api-development.mdc): API 开发指南
+- [tools-integration.mdc](mdc:.cursor/rules/tools-integration.mdc): 工具集成规范
+- [coding-standards.mdc](mdc:.cursor/rules/coding-standards.mdc): 编码标准
+- [debugging-troubleshooting.mdc](mdc:.cursor/rules/debugging-troubleshooting.mdc): 调试和故障排除
+
+### 重要文件索引
+- [pyproject.toml](mdc:pyproject.toml): 项目配置和依赖管理
+- [main.py](mdc:main.py): 命令行入口点
+- [server.py](mdc:server.py): Web 服务启动文件
+- [src/workflow.py](mdc:src/workflow.py): 主工作流定义
+- [README.md](mdc:README.md): 项目说明文档
+
+### 开发工具
+- **代码格式化**: `uv run black src/`
+- **类型检查**: `uv run mypy src/`
+- **测试运行**: `uv run pytest`
+- **依赖管理**: `uv add package-name`
+- **文档生成**: `uv run sphinx-build docs/ docs/_build/`
+
+## 🎯 最佳实践总结
+
+1. **始终使用异步编程**: 所有 I/O 操作都应该是异步的
+2. **完善的错误处理**: 每个函数都应该有适当的异常处理
+3. **详细的中文注释**: 代码注释使用清晰的中文表达
+4. **类型提示**: 使用 Python 类型提示提高代码可读性
+5. **模块化设计**: 保持组件的单一职责和松耦合
+6. **测试驱动**: 为每个功能编写相应的测试用例
+7. **配置外置**: 所有配置参数都应该可以外部控制
+8. **日志记录**: 记录关键操作和错误信息
+9. **性能监控**: 关注响应时间和资源使用情况
+10. **文档维护**: 保持代码和文档的同步更新
+
+---
+
+*此文档是 FusionAI 项目的主开发指南，涵盖了项目开发的核心规范和最佳实践。请在开发过程中严格遵循这些指导原则，确保代码质量和项目的可维护性。*

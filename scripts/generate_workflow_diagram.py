@@ -116,6 +116,11 @@ class WorkflowAnalyzer:
                 "name": "document_parser",
                 "type": "执行节点", 
                 "description": "文档解析和内容分析"
+            },
+            "chart_generator": {
+                "name": "chart_generator",
+                "type": "执行节点",
+                "description": "数据可视化和图表生成"
             }
         }
         
@@ -132,12 +137,14 @@ class WorkflowAnalyzer:
             {"from": "supervisor", "to": "reporter", "type": "conditional", "condition": "路由到reporter"},
             {"from": "supervisor", "to": "db_analyst", "type": "conditional", "condition": "路由到db_analyst"},
             {"from": "supervisor", "to": "document_parser", "type": "conditional", "condition": "路由到document_parser"},
+            {"from": "supervisor", "to": "chart_generator", "type": "conditional", "condition": "路由到chart_generator"},
             # 添加返回连接
             {"from": "researcher", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "coder", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "browser", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "db_analyst", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "document_parser", "to": "supervisor", "type": "direct", "condition": "任务完成"},
+            {"from": "chart_generator", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             # reporter直接到结束
             {"from": "reporter", "to": "end", "type": "direct"},
             # supervisor到结束
@@ -266,7 +273,7 @@ class DiagramGenerator:
     class coordinator coordinator
     class planner planner
     class supervisor supervisor
-    class researcher,coder,browser,db_analyst,document_parser executor
+    class researcher,coder,browser,db_analyst,document_parser,chart_generator executor
     class reporter reporter
 """
         

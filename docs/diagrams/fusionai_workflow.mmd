@@ -8,6 +8,7 @@ graph LR
     reporter["reporter<br/>整合所有执行结果，生成最终报告"]
     db_analyst["db_analyst<br/>数据库查询和分析"]
     document_parser["document_parser<br/>文档解析和内容分析"]
+    chart_generator["chart_generator<br/>数据可视化和图表生成"]
     start([开始])
     end([结束])
 
@@ -20,11 +21,13 @@ graph LR
     supervisor -->|路由到reporter| reporter
     supervisor -->|路由到db_analyst| db_analyst
     supervisor -->|路由到document_parser| document_parser
+    supervisor -->|路由到chart_generator| chart_generator
     researcher --> supervisor
     coder --> supervisor
     browser --> supervisor
     db_analyst --> supervisor
     document_parser --> supervisor
+    chart_generator --> supervisor
     reporter --> end
     supervisor -->|任务完成| end
 
@@ -39,5 +42,5 @@ graph LR
     class coordinator coordinator
     class planner planner
     class supervisor supervisor
-    class researcher,coder,browser,db_analyst,document_parser executor
+    class researcher,coder,browser,db_analyst,document_parser,chart_generator executor
     class reporter reporter

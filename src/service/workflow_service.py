@@ -81,6 +81,7 @@ async def run_agent_workflow(
             "search_before_planning": search_before_planning,
         },
         version="v2",
+        config={"recursion_limit": 50},
     ):
         kind = event.get("event")
         data = event.get("data")

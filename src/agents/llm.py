@@ -1,5 +1,6 @@
 from langchain_openai import ChatOpenAI
 from langchain_deepseek import ChatDeepSeek
+from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import Optional
 
 from src.config import (
@@ -12,6 +13,7 @@ from src.config import (
     VL_MODEL,
     VL_BASE_URL,
     VL_API_KEY,
+    GOOGLE_API_KEY,
 )
 from src.config.agents import LLMType
 
@@ -60,31 +62,81 @@ def create_deepseek_llm(
     return ChatDeepSeek(**llm_kwargs)
 
 
+def create_google_llm(
+    model: str,
+    api_key: Optional[str] = None,
+    temperature: float = 0.0,
+    **kwargs,
+) -> ChatGoogleGenerativeAI:
+    """
+    Create a ChatGoogleGenerativeAI instance with the specified configuration
+    """
+    llm_kwargs = {"model": model, "temperature": temperature, **kwargs}
+
+    if api_key:  # This will handle None or empty string
+        llm_kwargs["google_api_key"] = api_key
+
+    return ChatGoogleGenerativeAI(**llm_kwargs)
+
+
 # Cache for LLM instances
-_llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek] = {}
+_llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek | ChatGoogleGenerativeAI] = {}
 
 
-def get_llm_by_type(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
+def _create_llm_by_model_name(
+    model: str, 
+    base_url: Optional[str] = None, 
+    api_key: Optional[str] = None
+) -> ChatOpenAI | ChatDeepSeek | ChatGoogleGenerativeAI:
+    """
+    根据模型名称自动选择合适的LLM提供商
+    """
+    # Google模型
+    if model.startswith(("gemini", "models/gemini")):
+        return create_google_llm(
+            model=model,
+            api_key=api_key or GOOGLE_API_KEY,
+        )
+    
+    # DeepSeek模型
+    elif model.startswith("deepseek"):
+        return create_deepseek_llm(
+            model=model,
+            base_url=base_url,
+            api_key=api_key,
+        )
+    
+    # 默认使用OpenAI兼容接口（包括GPT、Claude等）
+    else:
+        return create_openai_llm(
+            model=model,
+            base_url=base_url,
+            api_key=api_key,
+        )
+
+
+def get_llm_by_type(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek | ChatGoogleGenerativeAI:
     """
     Get LLM instance by type. Returns cached instance if available.
     """
     if llm_type in _llm_cache:
         return _llm_cache[llm_type]
 
+    print(f"llm_type: {BASIC_MODEL}")
     if llm_type == "reasoning":
-        llm = create_deepseek_llm(
+        llm = _create_llm_by_model_name(
             model=REASONING_MODEL,
             base_url=REASONING_BASE_URL,
             api_key=REASONING_API_KEY,
         )
     elif llm_type == "basic":
-        llm = create_openai_llm(
+        llm = _create_llm_by_model_name(
             model=BASIC_MODEL,
             base_url=BASIC_BASE_URL,
             api_key=BASIC_API_KEY,
         )
     elif llm_type == "vision":
-        llm = create_openai_llm(
+        llm = _create_llm_by_model_name(
             model=VL_MODEL,
             base_url=VL_BASE_URL,
             api_key=VL_API_KEY,

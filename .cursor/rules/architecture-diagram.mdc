@@ -1,0 +1,348 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 架构图解
+
+## 🏗️ 系统整体架构
+
+### 分层架构图
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    用户接口层 (User Interface)                │
+├─────────────────────────────────────────────────────────────┤
+│  Web UI  │  CLI工具  │  API客户端  │  第三方集成  │  移动端   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     API网关层 (API Gateway)                  │
+├─────────────────────────────────────────────────────────────┤
+│  FastAPI  │  路由管理  │  认证授权  │  限流控制  │  监控日志  │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   智能体编排层 (Agent Orchestration)          │
+├─────────────────────────────────────────────────────────────┤
+│  任务调度  │  智能体管理  │  工作流引擎  │  状态管理  │  结果聚合 │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    智能体层 (AI Agents)                      │
+├─────────────────────────────────────────────────────────────┤
+│  Web智能体 │ 数据智能体 │ 分析智能体 │ 图表智能体 │ 自定义智能体│
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     工具层 (Tools Layer)                     │
+├─────────────────────────────────────────────────────────────┤
+│  网页爬虫  │  浏览器控制 │  数据处理  │  文件操作  │  API调用   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   基础设施层 (Infrastructure)                 │
+├─────────────────────────────────────────────────────────────┤
+│  LLM服务  │  数据存储  │  消息队列  │  缓存系统  │  监控告警   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🔄 数据流向图
+
+### 请求处理流程
+```
+用户请求 → API网关 → 参数验证 → 智能体选择 → 任务分解
+    ↓
+工具调用 → 结果处理 → 状态更新 → 响应格式化 → 返回结果
+    ↓
+日志记录 → 性能监控 → 错误处理 → 清理资源
+```
+
+### 智能体工作流
+```
+任务接收 → 意图理解 → 计划制定 → 工具选择 → 执行操作
+    ↓
+结果验证 → 错误处理 → 状态更新 → 结果输出 → 任务完成
+```
+
+## 📁 目录结构详解
+
+### 核心模块组织
+```
+src/
+├── agents/                 # 智能体模块
+│   ├── base.py            # 基础智能体类
+│   ├── web_agent.py       # 网页操作智能体
+│   ├── data_agent.py      # 数据处理智能体
+│   ├── chart_agent.py     # 图表生成智能体
+│   └── custom_agent.py    # 自定义智能体
+│
+├── api/                   # API服务模块
+│   ├── app.py            # FastAPI应用配置
+│   ├── routes/           # 路由定义
+│   │   ├── agents.py     # 智能体相关路由
+│   │   ├── tasks.py      # 任务管理路由
+│   │   └── health.py     # 健康检查路由
+│   ├── middleware/       # 中间件
+│   │   ├── auth.py       # 认证中间件
+│   │   ├── cors.py       # 跨域中间件
+│   │   └── logging.py    # 日志中间件
+│   └── models/           # 数据模型
+│       ├── request.py    # 请求模型
+│       └── response.py   # 响应模型
+│
+├── tools/                 # 工具模块
+│   ├── base.py           # 基础工具类
+│   ├── web_tools/        # 网页工具
+│   │   ├── crawler.py    # 网页爬虫
+│   │   ├── browser.py    # 浏览器控制
+│   │   └── parser.py     # 内容解析
+│   ├── data_tools/       # 数据工具
+│   │   ├── processor.py  # 数据处理
+│   │   ├── analyzer.py   # 数据分析
+│   │   └── visualizer.py # 数据可视化
+│   └── file_tools/       # 文件工具
+│       ├── reader.py     # 文件读取
+│       ├── writer.py     # 文件写入
+│       └── converter.py  # 格式转换
+│
+├── config/               # 配置模块
+│   ├── settings.py       # 应用配置
+│   ├── database.py       # 数据库配置
+│   ├── logging.py        # 日志配置
+│   └── llm.py           # LLM配置
+│
+├── service/              # 服务模块
+│   ├── task_service.py   # 任务服务
+│   ├── agent_service.py  # 智能体服务
+│   ├── tool_service.py   # 工具服务
+│   └── storage_service.py # 存储服务
+│
+├── graph/                # 工作流模块
+│   ├── workflow.py       # 工作流定义
+│   ├── nodes.py          # 节点定义
+│   ├── edges.py          # 边定义
+│   └── state.py          # 状态管理
+│
+├── utils/                # 工具函数
+│   ├── helpers.py        # 辅助函数
+│   ├── validators.py     # 验证函数
+│   ├── formatters.py     # 格式化函数
+│   └── decorators.py     # 装饰器
+│
+├── prompts/              # 提示词模块
+│   ├── agent_prompts.py  # 智能体提示词
+│   ├── tool_prompts.py   # 工具提示词
+│   └── system_prompts.py # 系统提示词
+│
+└── crawler/              # 爬虫模块
+    ├── engines/          # 爬虫引擎
+    ├── parsers/          # 解析器
+    └── storage/          # 存储器
+```
+
+## 🔗 组件关系图
+
+### 智能体与工具关系
+```
+WebAgent ──────┐
+               ├─── BrowserTool
+DataAgent ─────┤     │
+               ├─── CrawlerTool
+ChartAgent ────┤     │
+               ├─── ParserTool
+CustomAgent ───┘     │
+                     ▼
+               ToolRegistry
+                     │
+                     ▼
+               ToolExecutor
+```
+
+### API与服务关系
+```
+FastAPI App
+    │
+    ├─── AuthMiddleware
+    ├─── CORSMiddleware
+    ├─── LoggingMiddleware
+    │
+    ├─── AgentRoutes ──── AgentService ──── AgentRegistry
+    ├─── TaskRoutes ───── TaskService ───── TaskManager
+    ├─── HealthRoutes ─── HealthService ─── SystemMonitor
+    │
+    └─── ErrorHandler ─── ExceptionLogger
+```
+
+### 数据流关系
+```
+Request → Validation → Authentication → Authorization
+    │
+    ▼
+AgentSelection → TaskDecomposition → ToolExecution
+    │
+    ▼
+ResultProcessing → ResponseFormatting → Logging
+    │
+    ▼
+Response → Cleanup → Monitoring
+```
+
+## 🎯 核心设计模式
+
+### 1. 策略模式 (Strategy Pattern)
+```python
+# 智能体选择策略
+class AgentSelectionStrategy:
+    def select_agent(self, task_type: str) -> BaseAgent:
+        pass
+
+class WebTaskStrategy(AgentSelectionStrategy):
+    def select_agent(self, task_type: str) -> BaseAgent:
+        return WebAgent()
+
+class DataTaskStrategy(AgentSelectionStrategy):
+    def select_agent(self, task_type: str) -> BaseAgent:
+        return DataAgent()
+```
+
+### 2. 工厂模式 (Factory Pattern)
+```python
+# 工具工厂
+class ToolFactory:
+    @staticmethod
+    def create_tool(tool_type: str) -> BaseTool:
+        if tool_type == "web_crawler":
+            return WebCrawlerTool()
+        elif tool_type == "data_processor":
+            return DataProcessorTool()
+        # ...
+```
+
+### 3. 观察者模式 (Observer Pattern)
+```python
+# 任务状态监听
+class TaskObserver:
+    def update(self, task_id: str, status: str):
+        pass
+
+class LoggingObserver(TaskObserver):
+    def update(self, task_id: str, status: str):
+        logger.info(f"任务 {task_id} 状态更新: {status}")
+```
+
+### 4. 装饰器模式 (Decorator Pattern)
+```python
+# 工具增强装饰器
+@retry(max_attempts=3)
+@rate_limit(calls_per_minute=60)
+@cache(ttl=300)
+async def enhanced_tool_execution(tool: BaseTool, **kwargs):
+    return await tool.execute(**kwargs)
+```
+
+## 🔧 扩展点设计
+
+### 智能体扩展
+```python
+# 新智能体只需继承BaseAgent
+class NewAgent(BaseAgent):
+    def __init__(self):
+        super().__init__("new_agent")
+        self.tools = [Tool1(), Tool2()]
+    
+    async def execute_task(self, task: str) -> dict:
+        # 实现具体逻辑
+        pass
+```
+
+### 工具扩展
+```python
+# 新工具只需继承BaseTool
+class NewTool(BaseTool):
+    name = "new_tool"
+    description = "新工具描述"
+    
+    async def execute(self, **kwargs) -> dict:
+        # 实现具体功能
+        pass
+```
+
+### API扩展
+```python
+# 新API路由
+router = APIRouter(prefix="/api/v1/new", tags=["新功能"])
+
+@router.post("/endpoint")
+async def new_endpoint():
+    # 实现新功能
+    pass
+```
+
+## 📊 性能架构
+
+### 异步处理架构
+```
+Request Queue → Worker Pool → Task Executor → Result Aggregator
+     │              │              │              │
+     ▼              ▼              ▼              ▼
+Connection Pool → Thread Pool → Process Pool → Response Cache
+```
+
+### 缓存架构
+```
+L1 Cache (内存) → L2 Cache (Redis) → L3 Cache (数据库)
+     │                  │                  │
+     ▼                  ▼                  ▼
+应用内缓存 ────── 分布式缓存 ────── 持久化存储
+```
+
+### 监控架构
+```
+应用指标 → 指标收集器 → 时序数据库 → 监控面板
+    │           │           │           │
+    ▼           ▼           ▼           ▼
+日志收集 → 日志聚合器 → 搜索引擎 → 日志分析
+    │           │           │           │
+    ▼           ▼           ▼           ▼
+链路追踪 → 追踪收集器 → 追踪存储 → 链路分析
+```
+
+## 🔐 安全架构
+
+### 认证授权流程
+```
+用户请求 → JWT验证 → 权限检查 → 资源访问
+    │          │          │          │
+    ▼          ▼          ▼          ▼
+Token解析 → 用户识别 → 角色验证 → 操作授权
+```
+
+### 数据安全
+```
+敏感数据 → 加密存储 → 访问控制 → 审计日志
+    │          │          │          │
+    ▼          ▼          ▼          ▼
+数据脱敏 → 传输加密 → 权限管理 → 合规检查
+```
+
+## 📚 相关文档
+
+### 架构相关规则
+- [主开发指南](mdc:.cursor/rules/master-development-guide.mdc): 开发规范和最佳实践
+- [项目概览](mdc:.cursor/rules/project-overview.mdc): 项目整体介绍
+- [API开发指南](mdc:.cursor/rules/api-development.mdc): API设计规范
+- [性能优化](mdc:.cursor/rules/performance-optimization.mdc): 性能优化指南
+
+### 核心文件
+- [主工作流](mdc:src/workflow.py): 核心工作流实现
+- [项目配置](mdc:pyproject.toml): 项目依赖和配置
+- [服务入口](mdc:server.py): Web服务启动文件
+
+---
+
+*此架构图解文档提供了 FusionAI 项目的完整架构视图，帮助开发者理解系统设计和组件关系。在进行架构修改时，请参考此文档确保设计的一致性。*

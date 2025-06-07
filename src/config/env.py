@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (.env file takes precedence over system env vars)
+load_dotenv(override=True)
 
 # Reasoning LLM configuration (for complex reasoning tasks)
 REASONING_MODEL = os.getenv("REASONING_MODEL", "gpt-4o")
@@ -18,6 +18,9 @@ BASIC_API_KEY = os.getenv("BASIC_API_KEY")
 VL_MODEL = os.getenv("VL_MODEL", "gpt-4o")
 VL_BASE_URL = os.getenv("VL_BASE_URL")
 VL_API_KEY = os.getenv("VL_API_KEY")
+
+# Google API configuration
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Chrome Instance configuration
 CHROME_INSTANCE_PATH = os.getenv("CHROME_INSTANCE_PATH")

@@ -1,0 +1,518 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# FusionAI 快速参考指南
+
+## 🚀 常用命令速查
+
+### 环境管理
+```bash
+# 安装依赖
+uv sync                          # 同步所有依赖
+uv add package-name             # 添加新依赖
+uv remove package-name          # 移除依赖
+uv lock                         # 更新锁定文件
+
+# 虚拟环境
+uv venv                         # 创建虚拟环境
+source .venv/bin/activate       # 激活环境 (Linux/Mac)
+.venv\Scripts\activate          # 激活环境 (Windows)
+```
+
+### 开发服务
+```bash
+# 启动服务
+uv run python server.py         # 启动 Web 服务
+uv run python main.py           # 命令行模式
+uv run uvicorn src.api.app:app --reload  # 开发模式启动
+
+# 测试
+uv run pytest                   # 运行所有测试
+uv run pytest tests/unit/       # 运行单元测试
+uv run pytest -v --cov=src      # 带覆盖率的测试
+```
+
+### 代码质量
+```bash
+# 格式化
+uv run black src/               # 格式化源代码
+uv run black tests/             # 格式化测试代码
+uv run black .                  # 格式化整个项目
+
+# 类型检查
+uv run mypy src/                # 类型检查
+uv run mypy --strict src/       # 严格模式检查
+```
+
+## 📝 代码模板速查
+
+### 智能体模板
+```python
+from src.agents.base import BaseAgent
+from src.tools.base import BaseTool
+from typing import List, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
+class CustomAgent(BaseAgent):
+    """自定义智能体
+    
+    实现特定领域的智能体功能。
+    """
+    
+    def __init__(self, name: str, tools: List[BaseTool] = None):
+        """初始化智能体
+        
+        Args:
+            name: 智能体名称
+            tools: 可用工具列表
+        """
+        super().__init__(name)
+        self.tools = tools or []
+        self._initialized = False
+    
+    async def initialize(self) -> None:
+        """异步初始化"""
+        if self._initialized:
+            return
+        
+        logger.info(f"正在初始化智能体: {self.name}")
+        # 初始化逻辑
+        self._initialized = True
+    
+    async def execute_task(self, task: str, **kwargs) -> Dict[str, Any]:
+        """执行任务
+        
+        Args:
+            task: 任务描述
+            **kwargs: 额外参数
+            
+        Returns:
+            执行结果
+        """
+        try:
+            await self.initialize()
+            
+            # 任务执行逻辑
+            result = await self._process_task(task, **kwargs)
+            
+            return {
+                "status": "success",
+                "result": result,
+                "agent": self.name
+            }
+        except Exception as e:
+            logger.error(f"任务执行失败: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "agent": self.name
+            }
+    
+    async def _process_task(self, task: str, **kwargs) -> Any:
+        """处理具体任务逻辑"""
+        # 实现具体的任务处理逻辑
+        pass
+```
+
+### 工具模板
+```python
+from src.tools.base import BaseTool
+from typing import Dict, Any, Optional
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
+class CustomTool(BaseTool):
+    """自定义工具
+    
+    实现特定功能的工具。
+    """
+    
+    name = "custom_tool"
+    description = "工具功能描述"
+    
+    def __init__(self, config: Optional[Dict] = None):
+        """初始化工具
+        
+        Args:
+            config: 工具配置
+        """
+        super().__init__()
+        self.config = config or {}
+        self._client = None
+    
+    async def initialize(self) -> None:
+        """初始化工具资源"""
+        if self._client is None:
+            # 初始化客户端或连接
+            pass
+    
+    async def execute(self, **kwargs) -> Dict[str, Any]:
+        """执行工具功能
+        
+        Args:
+            **kwargs: 工具参数
+            
+        Returns:
+            执行结果
+        """
+        try:
+            await self.initialize()
+            
+            # 工具执行逻辑
+            result = await self._perform_action(**kwargs)
+            
+            return {
+                "success": True,
+                "result": result,
+                "tool": self.name
+            }
+        except Exception as e:
+            logger.error(f"工具执行失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "tool": self.name
+            }
+    
+    async def _perform_action(self, **kwargs) -> Any:
+        """执行具体操作"""
+        # 实现具体的工具逻辑
+        pass
+    
+    async def cleanup(self) -> None:
+        """清理资源"""
+        if self._client:
+            # 清理客户端连接
+            pass
+```
+
+### API 路由模板
+```python
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from pydantic import BaseModel, Field
+from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/v1", tags=["自定义功能"])
+
+class RequestModel(BaseModel):
+    """请求模型"""
+    parameter: str = Field(..., description="参数描述")
+    optional_param: Optional[str] = Field(None, description="可选参数")
+    config: Dict[str, Any] = Field(default_factory=dict, description="配置参数")
+
+class ResponseModel(BaseModel):
+    """响应模型"""
+    success: bool = Field(..., description="操作是否成功")
+    message: str = Field(..., description="响应消息")
+    data: Optional[Dict[str, Any]] = Field(None, description="响应数据")
+    error_code: Optional[str] = Field(None, description="错误代码")
+
+@router.post("/custom-endpoint", response_model=ResponseModel)
+async def custom_endpoint(
+    request: RequestModel,
+    background_tasks: BackgroundTasks
+):
+    """自定义 API 端点
+    
+    实现特定的 API 功能。
+    """
+    try:
+        # 参数验证
+        if not request.parameter:
+            raise HTTPException(
+                status_code=400,
+                detail="参数不能为空"
+            )
+        
+        # 业务逻辑处理
+        result = await process_request(request)
+        
+        # 后台任务 (可选)
+        background_tasks.add_task(log_request, request.dict())
+        
+        return ResponseModel(
+            success=True,
+            message="操作成功",
+            data=result
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"API 处理失败: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"服务器内部错误: {str(e)}"
+        )
+
+async def process_request(request: RequestModel) -> Dict[str, Any]:
+    """处理请求逻辑"""
+    # 实现具体的业务逻辑
+    return {"processed": True}
+
+async def log_request(request_data: Dict[str, Any]) -> None:
+    """记录请求日志"""
+    logger.info(f"处理请求: {request_data}")
+```
+
+### 测试模板
+```python
+import pytest
+import asyncio
+from unittest.mock import AsyncMock, patch, MagicMock
+from src.agents.custom_agent import CustomAgent
+from src.tools.custom_tool import CustomTool
+
+class TestCustomAgent:
+    """自定义智能体测试"""
+    
+    @pytest.fixture
+    async def agent(self):
+        """创建测试智能体"""
+        agent = CustomAgent("test_agent")
+        await agent.initialize()
+        yield agent
+        await agent.cleanup()
+    
+    @pytest.fixture
+    def mock_tool(self):
+        """模拟工具"""
+        tool = MagicMock(spec=CustomTool)
+        tool.execute = AsyncMock(return_value={
+            "success": True,
+            "result": "测试结果"
+        })
+        return tool
+    
+    @pytest.mark.asyncio
+    async def test_execute_task_success(self, agent, mock_tool):
+        """测试任务执行成功"""
+        agent.tools = [mock_tool]
+        
+        result = await agent.execute_task("测试任务")
+        
+        assert result["status"] == "success"
+        assert "result" in result
+        mock_tool.execute.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_execute_task_failure(self, agent):
+        """测试任务执行失败"""
+        with patch.object(agent, '_process_task', side_effect=Exception("测试错误")):
+            result = await agent.execute_task("测试任务")
+            
+            assert result["status"] == "error"
+            assert "测试错误" in result["error"]
+    
+    @pytest.mark.asyncio
+    async def test_chinese_text_handling(self, agent):
+        """测试中文文本处理"""
+        chinese_task = "处理中文文本任务"
+        result = await agent.execute_task(chinese_task)
+        
+        # 验证中文处理正确
+        assert isinstance(result, dict)
+        assert result["agent"] == "test_agent"
+
+class TestCustomTool:
+    """自定义工具测试"""
+    
+    @pytest.fixture
+    async def tool(self):
+        """创建测试工具"""
+        tool = CustomTool({"test_config": "value"})
+        await tool.initialize()
+        yield tool
+        await tool.cleanup()
+    
+    @pytest.mark.asyncio
+    async def test_tool_execution(self, tool):
+        """测试工具执行"""
+        result = await tool.execute(param="test_value")
+        
+        assert result["success"] is True
+        assert result["tool"] == "custom_tool"
+    
+    @pytest.mark.asyncio
+    async def test_tool_error_handling(self, tool):
+        """测试工具错误处理"""
+        with patch.object(tool, '_perform_action', side_effect=Exception("工具错误")):
+            result = await tool.execute()
+            
+            assert result["success"] is False
+            assert "工具错误" in result["error"]
+```
+
+## 🔧 配置模板
+
+### 环境变量配置
+```bash
+# .env 文件模板
+# AI 模型配置
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_BASE_URL=https://api.openai.com/v1
+DEEPSEEK_API_KEY=your_deepseek_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# 服务配置
+HOST=0.0.0.0
+PORT=8000
+DEBUG=true
+LOG_LEVEL=INFO
+
+# 数据库配置
+DATABASE_URL=sqlite:///./fusionai.db
+REDIS_URL=redis://localhost:6379
+
+# 存储配置
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=fusionai
+
+# 工具配置
+BROWSER_HEADLESS=true
+CRAWLER_TIMEOUT=30
+MAX_CONCURRENT_REQUESTS=10
+```
+
+### 日志配置
+```python
+# src/config/logging.py
+import logging
+import sys
+from pathlib import Path
+
+def setup_logging(log_level: str = "INFO", log_file: str = None):
+    """配置日志系统"""
+    
+    # 创建格式化器
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # 配置根日志器
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, log_level.upper()))
+    
+    # 控制台处理器
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+    
+    # 文件处理器 (可选)
+    if log_file:
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+    
+    # 配置第三方库日志级别
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+```
+
+## 🐛 调试技巧
+
+### 常用调试代码
+```python
+# 添加调试断点
+import pdb; pdb.set_trace()
+
+# 异步调试
+import asyncio
+import pdb
+pdb.set_trace()
+
+# 日志调试
+import logging
+logger = logging.getLogger(__name__)
+logger.debug(f"调试信息: {variable}")
+logger.info(f"执行状态: {status}")
+logger.error(f"错误信息: {error}")
+
+# 性能调试
+import time
+start_time = time.time()
+# 执行代码
+execution_time = time.time() - start_time
+logger.info(f"执行时间: {execution_time:.2f}秒")
+
+# 内存调试
+import tracemalloc
+tracemalloc.start()
+# 执行代码
+current, peak = tracemalloc.get_traced_memory()
+logger.info(f"当前内存: {current / 1024 / 1024:.2f}MB, 峰值: {peak / 1024 / 1024:.2f}MB")
+tracemalloc.stop()
+```
+
+### 常见问题解决
+```python
+# 中文编码问题
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+# 异步上下文管理
+async def safe_execute(coro):
+    """安全执行异步函数"""
+    try:
+        return await coro
+    except Exception as e:
+        logger.error(f"异步执行失败: {e}")
+        return None
+
+# 重试机制
+import asyncio
+from functools import wraps
+
+def retry(max_attempts=3, delay=1):
+    """重试装饰器"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            for attempt in range(max_attempts):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts - 1:
+                        raise
+                    logger.warning(f"第 {attempt + 1} 次尝试失败: {e}")
+                    await asyncio.sleep(delay)
+        return wrapper
+    return decorator
+```
+
+## 📚 快速链接
+
+### 重要文件
+- [主配置文件](mdc:pyproject.toml)
+- [Web服务入口](mdc:server.py)
+- [命令行入口](mdc:main.py)
+- [主工作流](mdc:src/workflow.py)
+
+### 核心目录
+- [智能体目录](mdc:src/agents/)
+- [工具目录](mdc:src/tools/)
+- [API目录](mdc:src/api/)
+- [配置目录](mdc:src/config/)
+- [测试目录](mdc:tests/)
+
+### 相关规则
+- [主开发指南](mdc:.cursor/rules/master-development-guide.mdc)
+- [项目概览](mdc:.cursor/rules/project-overview.mdc)
+- [中文开发规范](mdc:.cursor/rules/chinese-development.mdc)
+- [API开发指南](mdc:.cursor/rules/api-development.mdc)
+- [编码标准](mdc:.cursor/rules/coding-standards.mdc)
+
+---
+
+*此快速参考指南提供了 FusionAI 项目开发中最常用的代码模板、命令和技巧。建议收藏此文档以便快速查阅。*
