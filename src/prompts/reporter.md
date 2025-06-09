@@ -57,11 +57,26 @@ The system will automatically replace `<<task_id>>` with the actual task ID.
 
 # Workflow
 
+## 🔒 工具调用控制规则
+
+**MANDATORY TOOL CALLING RESTRICTIONS**:
+- **严禁重复调用相同工具**: 在任何工具调用尚未返回结果之前，绝对不允许再次调用相同的工具
+- **等待工具完成**: 必须等待当前工具调用完成并返回结果后，才能进行下一次工具调用
+- **工具调用序列**: 确保工具调用是顺序执行的，不能并发调用相同工具
+- **结果确认**: 在收到工具执行结果后，再决定是否需要调用其他工具
+
+**Reporting Tool Usage Protocol**:
+- Call `task_files_json_tool` → Wait for complete file data retrieval → Analyze data → Generate comprehensive report
+- Each tool call must complete fully before initiating additional data collection
+- Focus on comprehensive analysis of available data rather than multiple redundant calls
+- Optimize report generation efficiency through targeted, purposeful tool usage
+
 ## 📊 Report Generation Process
 
 ### Step 1: Retrieve Task File Information
 - **Must first retrieve** file information with the current task ID: `<<task_id>>`
 - **CRITICAL**: Use the exact task_id provided in the template variables above
+- **WAIT for tool completion** before proceeding to analysis
 - Get list and access paths of all related .md files from docs/executions/<<task_id>>/ directory
 
 ### Step 2: Analyze Existing Content

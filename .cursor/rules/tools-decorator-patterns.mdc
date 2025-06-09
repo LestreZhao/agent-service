@@ -1,0 +1,569 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 工具装饰器模式规则
+
+## 概述
+
+FusionAI 使用装饰器模式增强工具功能，提供统一的错误处理、性能监控、缓存和日志记录。本规则定义了工具装饰器的设计模式和使用规范。
+
+## 核心装饰器架构
+
+### 1. 装饰器文件结构
+
+#### 文件位置：[decorators.py](mdc:src/tools/decorators.py)
+- **职责**: 提供工具增强装饰器
+- **核心功能**:
+  - 错误处理和重试机制
+  - 性能监控和指标收集
+  - 缓存和结果优化
+  - 日志记录和调试
+
+### 2. 标准装饰器模式
+
+#### 基础装饰器结构
+```python
+import functools
+import logging
+from typing import Callable, Any
+from datetime import datetime
+
+def tool_decorator(func: Callable) -> Callable:
+    """标准工具装饰器模板"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # 前置处理
+        start_time = datetime.now()
+        logger = logging.getLogger(func.__module__)
+        
+        try:
+            # 执行原函数
+            result = func(*args, **kwargs)
+            
+            # 后置处理
+            duration = (datetime.now() - start_time).total_seconds()
+            logger.info(f"{func.__name__} 执行成功，耗时: {duration:.2f}s")
+            
+            return result
+            
+        except Exception as e:
+            # 错误处理
+            logger.error(f"{func.__name__} 执行失败: {str(e)}")
+            raise
+            
+    return wrapper
+```
+
+#### 异步装饰器模式
+```python
+import asyncio
+
+def async_tool_decorator(func: Callable) -> Callable:
+    """异步工具装饰器模板"""
+    @functools.wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        start_time = datetime.now()
+        logger = logging.getLogger(func.__module__)
+        
+        try:
+            if asyncio.iscoroutinefunction(func):
+                result = await func(*args, **kwargs)
+            else:
+                result = func(*args, **kwargs)
+                
+            duration = (datetime.now() - start_time).total_seconds()
+            logger.info(f"{func.__name__} 异步执行成功，耗时: {duration:.2f}s")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"{func.__name__} 异步执行失败: {str(e)}")
+            raise
+            
+    return async_wrapper
+```
+
+## 常用装饰器实现
+
+### 1. 错误处理装饰器
+
+#### 重试机制装饰器
+```python
+import time
+import random
+
+def retry_on_failure(max_retries: int = 3, delay: float = 1.0, backoff: float = 2.0):
+    """重试装饰器，支持指数退避"""
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries:
+                        logger.error(f"{func.__name__} 最终失败，已重试 {max_retries} 次: {str(e)}")
+                        raise
+                    
+                    wait_time = delay * (backoff ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"{func.__name__} 第 {attempt + 1} 次失败，{wait_time:.2f}s 后重试: {str(e)}")
+                    time.sleep(wait_time)
+                    
+        return wrapper
+    return decorator
+```
+
+#### 异常转换装饰器
+```python
+from typing import Type
+
+def handle_exceptions(*exception_types: Type[Exception], default_return=None):
+    """异常处理装饰器，转换特定异常为默认值"""
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except exception_types as e:
+                logger.warning(f"{func.__name__} 处理异常 {type(e).__name__}: {str(e)}")
+                return default_return
+            except Exception as e:
+                logger.error(f"{func.__name__} 未处理异常: {str(e)}")
+                raise
+                
+        return wrapper
+    return decorator
+```
+
+### 2. 性能监控装饰器
+
+#### 执行时间监控
+```python
+def timing_monitor(threshold_seconds: float = 5.0):
+    """性能监控装饰器，记录执行时间"""
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.perf_counter()
+            
+            try:
+                result = func(*args, **kwargs)
+                execution_time = time.perf_counter() - start_time
+                
+                if execution_time > threshold_seconds:
+                    logger.warning(f"{func.__name__} 执行缓慢: {execution_time:.2f}s (阈值: {threshold_seconds}s)")
+                else:
+                    logger.debug(f"{func.__name__} 执行时间: {execution_time:.2f}s")
+                
+                return result
+                
+            except Exception as e:
+                execution_time = time.perf_counter() - start_time
+                logger.error(f"{func.__name__} 执行失败 (耗时: {execution_time:.2f}s): {str(e)}")
+                raise
+                
+        return wrapper
+    return decorator
+```
+
+#### 内存使用监控
+```python
+import psutil
+import os
+
+def memory_monitor(max_memory_mb: int = 512):
+    """内存使用监控装饰器"""
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            process = psutil.Process(os.getpid())
+            initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+            
+            try:
+                result = func(*args, **kwargs)
+                
+                final_memory = process.memory_info().rss / 1024 / 1024
+                memory_diff = final_memory - initial_memory
+                
+                if memory_diff > max_memory_mb:
+                    logger.warning(f"{func.__name__} 内存使用过高: +{memory_diff:.2f}MB")
+                
+                logger.debug(f"{func.__name__} 内存变化: +{memory_diff:.2f}MB")
+                return result
+                
+            except Exception as e:
+                final_memory = process.memory_info().rss / 1024 / 1024
+                memory_diff = final_memory - initial_memory
+                logger.error(f"{func.__name__} 执行失败，内存变化: +{memory_diff:.2f}MB: {str(e)}")
+                raise
+                
+        return wrapper
+    return decorator
+```
+
+### 3. 缓存装饰器
+
+#### LRU 缓存增强
+```python
+from functools import lru_cache
+import hashlib
+import json
+
+def enhanced_cache(maxsize: int = 128, ttl_seconds: int = 3600):
+    """增强的缓存装饰器，支持TTL"""
+    def decorator(func: Callable) -> Callable:
+        cache = {}
+        cache_times = {}
+        
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # 生成缓存键
+            cache_key = hashlib.md5(
+                json.dumps([args, kwargs], sort_keys=True, default=str).encode()
+            ).hexdigest()
+            
+            current_time = time.time()
+            
+            # 检查缓存是否存在且未过期
+            if (cache_key in cache and 
+                current_time - cache_times[cache_key] < ttl_seconds):
+                logger.debug(f"{func.__name__} 缓存命中: {cache_key[:8]}")
+                return cache[cache_key]
+            
+            # 执行函数并缓存结果
+            result = func(*args, **kwargs)
+            
+            # 清理过期缓存
+            if len(cache) >= maxsize:
+                expired_keys = [
+                    k for k, t in cache_times.items() 
+                    if current_time - t >= ttl_seconds
+                ]
+                for k in expired_keys:
+                    cache.pop(k, None)
+                    cache_times.pop(k, None)
+            
+            cache[cache_key] = result
+            cache_times[cache_key] = current_time
+            
+            logger.debug(f"{func.__name__} 结果已缓存: {cache_key[:8]}")
+            return result
+            
+        # 添加缓存管理方法
+        wrapper.cache_clear = lambda: (cache.clear(), cache_times.clear())
+        wrapper.cache_info = lambda: {
+            "size": len(cache),
+            "maxsize": maxsize,
+            "ttl": ttl_seconds
+        }
+        
+        return wrapper
+    return decorator
+```
+
+### 4. 输入验证装饰器
+
+#### 参数验证装饰器
+```python
+from typing import Dict, Any, Union
+
+def validate_params(**validators: Dict[str, Callable]):
+    """参数验证装饰器"""
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # 获取函数签名
+            import inspect
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            
+            # 验证参数
+            for param_name, validator in validators.items():
+                if param_name in bound_args.arguments:
+                    value = bound_args.arguments[param_name]
+                    try:
+                        if not validator(value):
+                            raise ValueError(f"参数 {param_name} 验证失败: {value}")
+                    except Exception as e:
+                        logger.error(f"{func.__name__} 参数验证错误 {param_name}: {str(e)}")
+                        raise ValueError(f"参数 {param_name} 验证失败: {str(e)}")
+            
+            return func(*args, **kwargs)
+            
+        return wrapper
+    return decorator
+```
+
+#### 类型检查装饰器
+```python
+def type_check(func: Callable) -> Callable:
+    """类型检查装饰器，基于类型注解"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        import inspect
+        from typing import get_type_hints
+        
+        # 获取类型提示
+        type_hints = get_type_hints(func)
+        sig = inspect.signature(func)
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        
+        # 检查参数类型
+        for param_name, value in bound_args.arguments.items():
+            if param_name in type_hints:
+                expected_type = type_hints[param_name]
+                if not isinstance(value, expected_type):
+                    logger.error(f"{func.__name__} 类型错误 {param_name}: 期望 {expected_type}, 得到 {type(value)}")
+                    raise TypeError(f"参数 {param_name} 类型错误: 期望 {expected_type}, 得到 {type(value)}")
+        
+        result = func(*args, **kwargs)
+        
+        # 检查返回值类型
+        if 'return' in type_hints:
+            expected_return_type = type_hints['return']
+            if not isinstance(result, expected_return_type):
+                logger.error(f"{func.__name__} 返回值类型错误: 期望 {expected_return_type}, 得到 {type(result)}")
+                raise TypeError(f"返回值类型错误: 期望 {expected_return_type}, 得到 {type(result)}")
+        
+        return result
+        
+    return wrapper
+```
+
+## 装饰器组合模式
+
+### 1. 装饰器堆叠
+```python
+# 标准装饰器组合
+@timing_monitor(threshold_seconds=2.0)
+@retry_on_failure(max_retries=2)
+@enhanced_cache(maxsize=64, ttl_seconds=1800)
+@validate_params(
+    query=lambda x: isinstance(x, str) and len(x.strip()) > 0,
+    max_results=lambda x: isinstance(x, int) and x > 0
+)
+def search_data(query: str, max_results: int = 10) -> list:
+    """搜索数据的示例函数"""
+    # 实际搜索逻辑
+    pass
+```
+
+### 2. 条件装饰器
+```python
+def conditional_decorator(condition: bool, decorator: Callable):
+    """条件装饰器，根据条件决定是否应用装饰"""
+    def conditional(func: Callable) -> Callable:
+        if condition:
+            return decorator(func)
+        return func
+    return conditional
+
+# 使用示例
+DEBUG_MODE = True
+
+@conditional_decorator(DEBUG_MODE, timing_monitor())
+def process_data(data: list) -> dict:
+    """数据处理函数，仅在调试模式下监控时间"""
+    pass
+```
+
+### 3. 装饰器工厂模式
+```python
+class ToolDecoratorFactory:
+    """工具装饰器工厂"""
+    
+    @staticmethod
+    def create_standard_tool_decorator(
+        enable_timing: bool = True,
+        enable_retry: bool = True,
+        enable_cache: bool = False,
+        **kwargs
+    ):
+        """创建标准工具装饰器组合"""
+        def decorator(func: Callable) -> Callable:
+            result_func = func
+            
+            if enable_cache:
+                cache_config = kwargs.get('cache_config', {})
+                result_func = enhanced_cache(**cache_config)(result_func)
+            
+            if enable_retry:
+                retry_config = kwargs.get('retry_config', {})
+                result_func = retry_on_failure(**retry_config)(result_func)
+            
+            if enable_timing:
+                timing_config = kwargs.get('timing_config', {})
+                result_func = timing_monitor(**timing_config)(result_func)
+            
+            return result_func
+        
+        return decorator
+```
+
+## 工具集成模式
+
+### 1. 工具类装饰器应用
+```python
+class DataTool:
+    """数据处理工具类示例"""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    @timing_monitor()
+    @retry_on_failure(max_retries=2)
+    def fetch_data(self, source: str) -> dict:
+        """获取数据"""
+        pass
+    
+    @enhanced_cache(maxsize=32, ttl_seconds=600)
+    @validate_params(data=lambda x: isinstance(x, dict))
+    def process_data(self, data: dict) -> dict:
+        """处理数据"""
+        pass
+    
+    @handle_exceptions(ValueError, TypeError, default_return=[])
+    def parse_results(self, raw_data: str) -> list:
+        """解析结果"""
+        pass
+```
+
+### 2. 工具注册装饰器
+```python
+from typing import Dict, Type
+
+class ToolRegistry:
+    """工具注册表"""
+    _tools: Dict[str, Callable] = {}
+    
+    @classmethod
+    def register(cls, name: str = None):
+        """工具注册装饰器"""
+        def decorator(func: Callable) -> Callable:
+            tool_name = name or func.__name__
+            cls._tools[tool_name] = func
+            
+            # 自动应用标准装饰器
+            func = timing_monitor()(func)
+            func = retry_on_failure(max_retries=1)(func)
+            
+            logger.info(f"工具已注册: {tool_name}")
+            return func
+        
+        return decorator
+    
+    @classmethod
+    def get_tool(cls, name: str) -> Callable:
+        """获取注册的工具"""
+        return cls._tools.get(name)
+    
+    @classmethod
+    def list_tools(cls) -> list:
+        """列出所有注册的工具"""
+        return list(cls._tools.keys())
+
+# 使用示例
+@ToolRegistry.register("web_search")
+def search_web(query: str) -> dict:
+    """网络搜索工具"""
+    pass
+```
+
+## 测试和调试
+
+### 1. 装饰器测试
+```python
+import pytest
+from unittest.mock import Mock, patch
+
+def test_timing_monitor():
+    """测试时间监控装饰器"""
+    mock_logger = Mock()
+    
+    with patch('logging.getLogger', return_value=mock_logger):
+        @timing_monitor(threshold_seconds=0.1)
+        def slow_function():
+            time.sleep(0.2)
+            return "result"
+        
+        result = slow_function()
+        
+        assert result == "result"
+        mock_logger.warning.assert_called_once()
+
+def test_retry_decorator():
+    """测试重试装饰器"""
+    call_count = 0
+    
+    @retry_on_failure(max_retries=2, delay=0.01)
+    def flaky_function():
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise ValueError("临时错误")
+        return "成功"
+    
+    result = flaky_function()
+    assert result == "成功"
+    assert call_count == 3
+```
+
+### 2. 装饰器性能测试
+```python
+import time
+from memory_profiler import profile
+
+@profile
+def test_decorator_overhead():
+    """测试装饰器开销"""
+    
+    def plain_function(x: int) -> int:
+        return x * 2
+    
+    @timing_monitor()
+    @retry_on_failure()
+    def decorated_function(x: int) -> int:
+        return x * 2
+    
+    # 性能对比测试
+    iterations = 10000
+    
+    start = time.perf_counter()
+    for i in range(iterations):
+        plain_function(i)
+    plain_time = time.perf_counter() - start
+    
+    start = time.perf_counter()
+    for i in range(iterations):
+        decorated_function(i)
+    decorated_time = time.perf_counter() - start
+    
+    overhead = (decorated_time - plain_time) / plain_time * 100
+    print(f"装饰器开销: {overhead:.2f}%")
+```
+
+## 最佳实践
+
+### 1. 装饰器设计原则
+- **单一职责**: 每个装饰器只负责一个功能
+- **可组合性**: 支持多个装饰器叠加使用
+- **透明性**: 不改变原函数的签名和行为
+- **可配置性**: 提供参数控制装饰器行为
+
+### 2. 性能考虑
+- **最小化开销**: 避免不必要的计算和内存分配
+- **合理使用缓存**: 根据使用场景选择缓存策略
+- **异步兼容**: 同时支持同步和异步函数
+
+### 3. 错误处理
+- **优雅降级**: 装饰器错误不应影响原函数执行
+- **详细日志**: 记录装饰器行为和异常信息
+- **可关闭性**: 提供禁用装饰器的机制
+
+---
+
+*本规则适用于所有工具模块的装饰器开发和使用，确保系统的一致性和可靠性。*

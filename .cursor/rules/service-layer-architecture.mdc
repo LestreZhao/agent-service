@@ -1,0 +1,230 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 服务层架构设计规则
+
+## 概述
+
+FusionAI 采用分层架构设计，服务层 (`src/service/`) 负责业务逻辑的组织和工作流程的管理。这个规则文档定义了服务层的设计模式和开发规范。
+
+## 核心架构原则
+
+### 1. 服务层职责划分
+
+#### WorkflowService ([workflow_service.py](mdc:src/service/workflow_service.py))
+- **主要职责**: 管理 LangGraph 工作流的执行
+- **核心功能**:
+  - 工作流状态管理
+  - 事件流处理和分发
+  - 智能体协调和调度
+  - 计划步骤追踪和状态更新
+
+#### 服务设计模式
+```python
+# 标准服务类结构
+class ServiceBase:
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    async def process(self, input_data: dict) -> dict:
+        """核心业务逻辑处理方法"""
+        pass
+    
+    def _validate_input(self, data: dict) -> bool:
+        """输入数据验证"""
+        pass
+```
+
+### 2. 事件驱动架构
+
+#### 事件流管理
+- 使用 `astream_events` 进行实时事件流处理
+- 事件类型标准化：`plan_generated`, `step_started`, `step_end`
+- 支持调试模式和详细日志记录
+
+#### 事件处理模式
+```python
+# 事件处理器模式
+async def handle_event(event: dict) -> dict:
+    kind = event.get("event")
+    data = event.get("data")
+    
+    match kind:
+        case "on_chain_start":
+            return await handle_chain_start(data)
+        case "on_chain_end":
+            return await handle_chain_end(data)
+        case "on_chat_model_stream":
+            return await handle_model_stream(data)
+```
+
+### 3. 状态管理模式
+
+#### 全局状态管理
+- 工作流 ID 生成和追踪
+- 协调员缓存管理 (`coordinator_cache`)
+- 计划步骤状态追踪 (`current_plan_steps`, `current_step_index`)
+
+#### 状态同步策略
+```python
+# 状态更新模式
+def update_workflow_state(workflow_id: str, state_update: dict):
+    # 原子性状态更新
+    # 事件通知
+    # 缓存清理
+    pass
+```
+
+## 开发规范
+
+### 1. 服务类命名规范
+- 服务类以 `Service` 结尾
+- 文件名使用 `snake_case`，如 `workflow_service.py`
+- 类名使用 `PascalCase`，如 `WorkflowService`
+
+### 2. 日志记录标准
+```python
+import logging
+
+# 标准日志配置
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
+# 调试模式支持
+def enable_debug_logging():
+    logging.getLogger("src").setLevel(logging.DEBUG)
+```
+
+### 3. 异步处理模式
+- 所有服务方法优先使用 `async/await`
+- 使用 `AsyncGenerator` 进行流式数据处理
+- 支持并发执行和资源管理
+
+### 4. 错误处理策略
+```python
+# 标准错误处理
+try:
+    result = await process_workflow(data)
+except ValueError as e:
+    logger.error(f"Input validation failed: {e}")
+    raise
+except Exception as e:
+    logger.error(f"Workflow execution failed: {e}")
+    # 清理资源
+    # 状态回滚
+    raise
+```
+
+## 集成模式
+
+### 1. 与 LangGraph 集成
+- 使用 [build_graph()](mdc:src/graph) 构建工作流图
+- 配置递归限制和执行参数
+- 支持事件版本控制 (`version="v2"`)
+
+### 2. 与智能体系统集成
+- 动态加载 [TEAM_MEMBERS](mdc:src/config) 配置
+- 支持智能体切换和协调
+- 实现智能体状态跟踪
+
+### 3. 与 API 层集成
+- 提供 RESTful 接口封装
+- 支持 SSE (Server-Sent Events) 流式响应
+- 集成身份验证和权限控制
+
+## 性能优化
+
+### 1. 缓存策略
+```python
+# 协调员消息缓存
+coordinator_cache = []
+MAX_CACHE_SIZE = 2
+
+def manage_cache(new_message: dict):
+    if len(coordinator_cache) >= MAX_CACHE_SIZE:
+        coordinator_cache.pop(0)
+    coordinator_cache.append(new_message)
+```
+
+### 2. 并发处理
+- 使用 `ThreadPoolExecutor` 处理 CPU 密集型任务
+- 实现异步任务队列
+- 支持工作流并行执行
+
+### 3. 内存管理
+- 及时清理缓冲区 (`_planner_buffer`)
+- 实现状态持久化策略
+- 监控内存使用情况
+
+## 测试规范
+
+### 1. 单元测试
+```python
+import pytest
+from unittest.mock import AsyncMock, patch
+
+@pytest.mark.asyncio
+async def test_workflow_service():
+    # 模拟依赖
+    with patch('src.service.workflow_service.build_graph') as mock_graph:
+        mock_graph.return_value.astream_events = AsyncMock()
+        
+        # 测试逻辑
+        result = await run_agent_workflow([{"role": "user", "content": "test"}])
+        
+        # 断言
+        assert result is not None
+```
+
+### 2. 集成测试
+- 测试完整工作流执行
+- 验证事件流正确性
+- 测试异常场景处理
+
+## 最佳实践
+
+### 1. 可扩展性设计
+- 使用插件模式添加新服务
+- 支持配置驱动的行为调整
+- 实现服务依赖注入
+
+### 2. 监控和观察性
+- 集成分布式追踪
+- 实现性能指标收集
+- 支持健康检查端点
+
+### 3. 安全考虑
+- 输入数据验证和清理
+- 实现速率限制
+- 支持审计日志记录
+
+## 故障处理
+
+### 1. 常见问题
+- **工作流卡死**: 检查递归限制设置
+- **内存泄漏**: 清理事件缓冲区
+- **状态不一致**: 重置全局状态变量
+
+### 2. 调试技巧
+```python
+# 启用详细日志
+async def debug_workflow():
+    enable_debug_logging()
+    result = await run_agent_workflow(messages, debug=True)
+    return result
+```
+
+### 3. 恢复策略
+- 实现工作流检查点
+- 支持状态快照和恢复
+- 提供手动干预接口
+
+---
+
+*本规则适用于所有服务层组件的开发和维护，确保系统的可靠性和可扩展性。*

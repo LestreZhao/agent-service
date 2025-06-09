@@ -6,8 +6,16 @@ import tempfile
 import os
 from urllib.parse import urlparse, unquote
 import time
+import logging
+import traceback
 
+# 导入日志配置
+from src.utils.logger_config import setup_logging
 from .document_parser import document_parser
+
+# 配置日志记录
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def download_and_parse_document(url: str) -> dict:
@@ -130,7 +138,7 @@ def download_and_parse_document(url: str) -> dict:
     }
 
 
-def analyze_document_content_tool(document_url: str, analysis_request: str = "") -> str:
+def analyze_document_content_tool(document_url, analysis_request: str = "") -> str:
     """
     文档解析分析工具 - 接收可访问的URL和用户需求，获取文件并解析分析
     
@@ -141,49 +149,129 @@ def analyze_document_content_tool(document_url: str, analysis_request: str = "")
     Returns:
         文档分析结果的JSON字符串
     """
+    logger.info(f"开始分析文档，原始输入: {document_url}")
+    logger.info(f"输入类型: {type(document_url)}")
+    logger.info(f"分析要求: {analysis_request}")
+    
     try:
+        # 参数类型检查和转换
+        if isinstance(document_url, dict):
+            logger.warning(f"接收到字典类型的输入参数: {document_url}")
+            
+            # 检查是否是完整的参数字典 (包含document_url和analysis_request字段)
+            if 'document_url' in document_url and 'analysis_request' in document_url:
+                logger.info("检测到完整参数字典格式")
+                analysis_request = document_url['analysis_request']
+                document_url = document_url['document_url']
+                logger.info(f"提取的文档URL: {document_url}")
+                logger.info(f"提取的分析要求: {analysis_request}")
+            
+            # 检查是否是只包含URL/ID的字典
+            elif 'url' in document_url:
+                document_url = document_url['url']
+                logger.info(f"从字典中提取URL: {document_url}")
+            elif 'id' in document_url:
+                document_url = document_url['id']
+                logger.info(f"从字典中提取ID: {document_url}")
+            elif 'file_id' in document_url:
+                document_url = document_url['file_id']
+                logger.info(f"从字典中提取file_id: {document_url}")
+            elif 'document_url' in document_url:
+                # 只有document_url字段的情况
+                document_url = document_url['document_url']
+                logger.info(f"从字典中提取document_url: {document_url}")
+            else:
+                logger.error(f"字典中未找到有效的URL或ID字段: {document_url}")
+                return json.dumps({
+                    "error": f"输入参数格式错误：字典中未找到有效的URL或ID字段。支持的字段：document_url, url, id, file_id",
+                    "success": False,
+                    "input_received": str(document_url),
+                    "error_type": "invalid_input_format"
+                }, ensure_ascii=False)
+        
+        # 确保document_url是字符串
+        if not isinstance(document_url, str):
+            document_url = str(document_url)
+            logger.info(f"转换为字符串: {document_url}")
+        
+        logger.info(f"处理后的文档URL: {document_url}")
+        
         # 检查是否是文件ID（UUID格式）
         import re
         uuid_pattern = r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
         
+        logger.debug(f"检查输入格式: {document_url}")
+        
         if re.match(uuid_pattern, document_url):
+            logger.info(f"识别为文件ID格式: {document_url}")
+            
             # 这是一个文件ID，从存储系统获取文档
-            document_info = document_parser.get_file_info(document_url)
+            try:
+                logger.debug("尝试从存储系统获取文件信息")
+                document_info = document_parser.get_file_info(document_url)
+                logger.debug(f"get_file_info返回结果: {document_info is not None}")
+            except Exception as e:
+                logger.error(f"调用document_parser.get_file_info失败: {str(e)}")
+                logger.error(f"详细错误信息: {traceback.format_exc()}")
+                return json.dumps({
+                    "error": f"获取文件信息时发生内部错误: {str(e)}",
+                    "success": False,
+                    "input_received": document_url,
+                    "error_type": "file_info_retrieval_error",
+                    "detailed_error": traceback.format_exc()
+                }, ensure_ascii=False)
             
             if document_info is None:
+                logger.warning(f"未找到文件ID: {document_url}")
                 return json.dumps({
                     "error": f"未找到文件ID为 {document_url} 的文档",
                     "success": False,
-                    "input_received": document_url
+                    "input_received": document_url,
+                    "error_type": "file_not_found"
                 }, ensure_ascii=False)
             
+            logger.info(f"成功获取文件信息: {document_info.get('filename', 'Unknown')}")
             content = document_info.get("content", "")
+            logger.debug(f"文档内容长度: {len(content)}")
             
             # 构建分析结果
-            analysis = {
-                "document_info": {
-                    "filename": document_info.get("filename"),
-                    "file_type": document_info.get("file_type"),
-                    "file_size": document_info.get("file_size"),
-                    "uploaded_at": document_info.get("uploaded_at"),
-                    "parsed_at": document_info.get("parsed_at")
-                },
-                "content_statistics": {
-                    "content_length": len(content),
-                    "word_count": len(content.split()) if content else 0,
-                    "line_count": len(content.split('\n')) if content else 0,
-                    "paragraph_count": len([p for p in content.split('\n\n') if p.strip()]) if content else 0
-                },
-                "analysis_request": analysis_request,
-                "document_content": content,
-                "content_preview": content[:1000] + "..." if len(content) > 1000 else content
-            }
-            
-            return json.dumps({
-                "success": True,
-                "data": analysis,
-                "source_type": "file_storage"
-            }, ensure_ascii=False, indent=2)
+            try:
+                analysis = {
+                    "document_info": {
+                        "filename": document_info.get("filename"),
+                        "file_type": document_info.get("file_type"),
+                        "file_size": document_info.get("file_size"),
+                        "uploaded_at": document_info.get("uploaded_at"),
+                        "parsed_at": document_info.get("parsed_at")
+                    },
+                    "content_statistics": {
+                        "content_length": len(content),
+                        "word_count": len(content.split()) if content else 0,
+                        "line_count": len(content.split('\n')) if content else 0,
+                        "paragraph_count": len([p for p in content.split('\n\n') if p.strip()]) if content else 0
+                    },
+                    "analysis_request": analysis_request,
+                    "document_content": content,
+                    "content_preview": content[:1000] + "..." if len(content) > 1000 else content
+                }
+                
+                logger.info("成功构建分析结果")
+                return json.dumps({
+                    "success": True,
+                    "data": analysis,
+                    "source_type": "file_storage"
+                }, ensure_ascii=False, indent=2)
+                
+            except Exception as e:
+                logger.error(f"构建分析结果失败: {str(e)}")
+                logger.error(f"详细错误信息: {traceback.format_exc()}")
+                return json.dumps({
+                    "error": f"构建分析结果失败: {str(e)}",
+                    "success": False,
+                    "input_received": document_url,
+                    "error_type": "analysis_construction_error",
+                    "detailed_error": traceback.format_exc()
+                }, ensure_ascii=False)
         
         # 检查是否是内部API URL格式
         elif "/api/documents/" in document_url and any(endpoint in document_url for endpoint in ["/content", "/info", "/analyze"]):
@@ -252,10 +340,14 @@ def analyze_document_content_tool(document_url: str, analysis_request: str = "")
             }, ensure_ascii=False, indent=2)
         
     except Exception as e:
+        logger.error(f"文档分析工具发生未捕获的异常: {str(e)}")
+        logger.error(f"详细错误信息: {traceback.format_exc()}")
         return json.dumps({
             "error": f"分析文档失败: {str(e)}",
             "success": False,
-            "input_received": document_url
+            "input_received": document_url,
+            "error_type": "unexpected_error",
+            "detailed_error": traceback.format_exc()
         }, ensure_ascii=False)
 
 

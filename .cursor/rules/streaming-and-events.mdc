@@ -1,0 +1,405 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 流式处理和事件驱动架构规则
+
+## 概述
+
+FusionAI 采用事件驱动架构和流式处理模式，支持实时数据处理和用户交互。本规则定义了流式处理和事件驱动系统的设计模式和开发规范。
+
+## 事件流架构
+
+### 1. LangGraph 事件流系统
+
+#### 核心事件类型
+```python
+# LangGraph 标准事件
+EVENT_TYPES = {
+    "on_chain_start": "链执行开始",
+    "on_chain_end": "链执行结束", 
+    "on_chat_model_start": "模型推理开始",
+    "on_chat_model_stream": "模型流式输出",
+    "on_chat_model_end": "模型推理结束",
+}
+```
+
+#### 事件流配置
+```python
+# 标准事件流配置
+async for event in graph.astream_events(
+    input_data,
+    version="v2",  # 使用 v2 版本事件格式
+    config={
+        "recursion_limit": 50,  # 防止无限递归
+        "checkpoint_ns": "workflow"  # 检查点命名空间
+    }
+):
+    await process_event(event)
+```
+
+### 2. 自定义事件系统
+
+#### 业务事件定义
+```python
+# FusionAI 自定义事件
+CUSTOM_EVENTS = {
+    "plan_generated": {
+        "description": "计划生成完成",
+        "data_schema": {
+            "plan_steps": "list[dict]",
+            "total_steps": "int"
+        }
+    },
+    "step_started": {
+        "description": "步骤开始执行", 
+        "data_schema": {
+            "step_index": "int",
+            "total_steps": "int",
+            "step_info": "dict"
+        }
+    },
+    "step_end": {
+        "description": "步骤执行完成",
+        "data_schema": {
+            "step_index": "int", 
+            "total_steps": "int",
+            "step_info": "dict"
+        }
+    }
+}
+```
+
+#### 事件生成模式
+```python
+# 标准事件生成器
+async def generate_custom_event(event_type: str, data: dict):
+    """生成自定义事件"""
+    event = {
+        "event": event_type,
+        "data": data,
+        "timestamp": datetime.utcnow().isoformat(),
+        "source": "fusionai_workflow"
+    }
+    yield event
+```
+
+## 流式数据处理
+
+### 1. 异步生成器模式
+
+#### 流式响应处理
+```python
+from typing import AsyncGenerator
+
+async def stream_workflow_events(
+    user_input: list,
+    **kwargs
+) -> AsyncGenerator[dict, None]:
+    """流式处理工作流事件"""
+    try:
+        async for event in run_agent_workflow(user_input, **kwargs):
+            # 事件过滤和转换
+            processed_event = await process_event(event)
+            if processed_event:
+                yield processed_event
+    except Exception as e:
+        # 错误事件
+        yield {
+            "event": "error",
+            "data": {"message": str(e)},
+            "timestamp": datetime.utcnow().isoformat()
+        }
+```
+
+### 2. 缓冲区管理
+
+#### 动态缓冲策略
+```python
+class StreamBuffer:
+    def __init__(self, max_size: int = 1024):
+        self.buffer = ""
+        self.max_size = max_size
+        
+    def append(self, chunk: str) -> str:
+        self.buffer += chunk
+        if len(self.buffer) > self.max_size:
+            # 返回完整内容并清空缓冲区
+            content = self.buffer
+            self.buffer = ""
+            return content
+        return None
+        
+    def flush(self) -> str:
+        content = self.buffer
+        self.buffer = ""
+        return content
+```
+
+#### 实际应用示例
+```python
+# Planner 输出缓冲管理
+if kind == "on_chat_model_stream" and node == "planner":
+    content = data.get("chunk", {}).content if data.get("chunk") else None
+    if content:
+        if not hasattr(run_agent_workflow, '_planner_buffer'):
+            run_agent_workflow._planner_buffer = ""
+        run_agent_workflow._planner_buffer += content
+```
+
+### 3. JSON 流式解析
+
+#### 流式 JSON 处理
+```python
+from src.utils.json_cleaner import clean_json_response
+
+def parse_streaming_json(accumulated_content: str) -> dict:
+    """解析流式 JSON 内容"""
+    try:
+        # 使用统一的 JSON 清理函数
+        cleaned_content = clean_json_response(accumulated_content)
+        return json.loads(cleaned_content)
+    except json.JSONDecodeError as e:
+        logger.warning(f"JSON 解析失败: {e}")
+        logger.debug(f"原始内容: {accumulated_content[:100]}...")
+        return None
+```
+
+## SSE (Server-Sent Events) 集成
+
+### 1. FastAPI SSE 响应
+
+#### 标准 SSE 端点
+```python
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
+
+@app.get("/api/stream")
+async def stream_endpoint(request: Request):
+    """SSE 流式端点"""
+    async def event_stream():
+        try:
+            async for event in stream_workflow_events(user_input):
+                # SSE 格式转换
+                sse_data = {
+                    "event": event.get("event", "message"),
+                    "data": json.dumps(event.get("data", {})),
+                    "id": str(uuid.uuid4())
+                }
+                yield sse_data
+        except Exception as e:
+            yield {
+                "event": "error", 
+                "data": json.dumps({"error": str(e)})
+            }
+    
+    return EventSourceResponse(event_stream())
+```
+
+### 2. 错误处理和重连
+
+#### 错误恢复机制
+```python
+class SSEConnection:
+    def __init__(self, max_retries: int = 3):
+        self.max_retries = max_retries
+        self.retry_count = 0
+        
+    async def handle_connection_error(self, error: Exception):
+        self.retry_count += 1
+        if self.retry_count <= self.max_retries:
+            await asyncio.sleep(2 ** self.retry_count)  # 指数退避
+            return True  # 重试
+        return False  # 放弃
+```
+
+## 实时状态同步
+
+### 1. 工作流状态追踪
+
+#### 状态同步模式
+```python
+class WorkflowTracker:
+    def __init__(self):
+        self.active_workflows = {}
+        self.step_trackers = {}
+        
+    def update_workflow_status(self, workflow_id: str, status: dict):
+        """更新工作流状态"""
+        self.active_workflows[workflow_id] = status
+        
+    def track_plan_steps(self, workflow_id: str, steps: list):
+        """追踪计划步骤"""
+        self.step_trackers[workflow_id] = {
+            "steps": steps,
+            "current_index": 0,
+            "completed": []
+        }
+```
+
+### 2. 智能体状态同步
+
+#### 智能体活动监控
+```python
+def track_agent_activity(agent_name: str, activity: str):
+    """追踪智能体活动"""
+    activity_event = {
+        "event": "agent_activity",
+        "data": {
+            "agent_name": agent_name,
+            "activity": activity,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    }
+    return activity_event
+```
+
+## 性能优化
+
+### 1. 事件过滤和采样
+
+#### 智能事件过滤
+```python
+class EventFilter:
+    def __init__(self):
+        self.important_events = {
+            "plan_generated", "step_started", "step_end", 
+            "error", "workflow_complete"
+        }
+        
+    def should_emit(self, event: dict) -> bool:
+        """判断是否应该发送事件"""
+        event_type = event.get("event")
+        
+        # 重要事件总是发送
+        if event_type in self.important_events:
+            return True
+            
+        # 流式事件采样
+        if event_type == "on_chat_model_stream":
+            return random.random() < 0.1  # 10% 采样率
+            
+        return False
+```
+
+### 2. 内存管理
+
+#### 流式内存控制
+```python
+class MemoryManager:
+    def __init__(self, max_memory_mb: int = 100):
+        self.max_memory = max_memory_mb * 1024 * 1024
+        self.current_usage = 0
+        
+    def check_memory_limit(self) -> bool:
+        """检查内存使用限制"""
+        import psutil
+        process = psutil.Process()
+        memory_usage = process.memory_info().rss
+        return memory_usage < self.max_memory
+        
+    def cleanup_if_needed(self):
+        """必要时清理内存"""
+        if not self.check_memory_limit():
+            # 清理缓冲区
+            global coordinator_cache
+            coordinator_cache.clear()
+            
+            # 强制垃圾回收
+            import gc
+            gc.collect()
+```
+
+## 错误处理和调试
+
+### 1. 流式错误处理
+
+#### 错误事件格式
+```python
+def create_error_event(error: Exception, context: dict = None) -> dict:
+    """创建标准错误事件"""
+    return {
+        "event": "error",
+        "data": {
+            "error_type": type(error).__name__,
+            "message": str(error),
+            "context": context or {},
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    }
+```
+
+### 2. 调试和监控
+
+#### 事件日志记录
+```python
+def log_event_flow(event: dict, level: str = "DEBUG"):
+    """记录事件流日志"""
+    event_summary = {
+        "type": event.get("event"),
+        "node": event.get("metadata", {}).get("checkpoint_ns", "").split(":")[0],
+        "step": event.get("metadata", {}).get("langgraph_step"),
+        "run_id": event.get("run_id", "")[:8]  # 只记录前8位
+    }
+    
+    logger.log(getattr(logging, level), f"Event: {event_summary}")
+```
+
+## 测试策略
+
+### 1. 流式测试
+
+#### 异步流测试
+```python
+@pytest.mark.asyncio
+async def test_streaming_workflow():
+    events = []
+    async for event in stream_workflow_events(test_input):
+        events.append(event)
+        if len(events) >= 10:  # 限制测试事件数量
+            break
+    
+    # 验证事件序列
+    assert any(e["event"] == "plan_generated" for e in events)
+    assert any(e["event"] == "step_started" for e in events)
+```
+
+### 2. SSE 集成测试
+
+#### 端到端 SSE 测试
+```python
+import httpx
+
+@pytest.mark.asyncio
+async def test_sse_endpoint():
+    async with httpx.AsyncClient() as client:
+        async with client.stream("GET", "/api/stream") as response:
+            async for line in response.aiter_lines():
+                if line.startswith("data:"):
+                    data = json.loads(line[5:])  # 去掉 "data:" 前缀
+                    # 验证数据格式
+                    assert "event" in data
+```
+
+## 最佳实践
+
+### 1. 事件设计原则
+- **原子性**: 每个事件包含完整信息
+- **幂等性**: 重复处理同一事件不产生副作用
+- **顺序性**: 维护事件的时序关系
+
+### 2. 流式处理原则
+- **背压控制**: 避免生产者过快导致内存溢出
+- **优雅降级**: 在高负载时减少事件频率
+- **资源清理**: 及时释放不再需要的资源
+
+### 3. 监控和告警
+- **延迟监控**: 追踪事件处理延迟
+- **错误率监控**: 监控流式处理错误率
+- **内存监控**: 监控缓冲区内存使用
+
+---
+
+*本规则适用于所有涉及实时数据处理和事件驱动的组件开发。*
