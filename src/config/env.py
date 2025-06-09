@@ -22,8 +22,10 @@ VL_API_KEY = os.getenv("VL_API_KEY")
 # Google API configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Chrome Instance configuration
-CHROME_INSTANCE_PATH = os.getenv("CHROME_INSTANCE_PATH")
+
 
 # Crawler configuration
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+
+# File server configuration
+AGENT_FILE_BASE_URL = os.getenv("AGENT_FILE_BASE_URL", "https://agentfile.fusiontech.cn")

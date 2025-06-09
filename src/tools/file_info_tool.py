@@ -4,6 +4,7 @@ import json
 import glob
 from typing import Dict, List, Any
 from langchain.tools import Tool
+from src.config.env import AGENT_FILE_BASE_URL
 
 def get_files_by_task_id(task_id: str) -> str:
     """
@@ -43,8 +44,9 @@ def get_files_by_task_id(task_id: str) -> str:
             
             # 根据操作系统生成正确的URL
             if system == 'linux':
-                # Linux系统：生成file:// URL格式
-                file_url = f"file://{os.path.abspath(file_path)}"
+                # Linux系统：使用配置的文件服务器域名
+                relative_path = os.path.relpath(file_path, start='.')
+                file_url = f"{AGENT_FILE_BASE_URL}/{relative_path}"
             elif system == 'darwin':  # macOS
                 # macOS：生成完整的文件系统路径
                 file_url = os.path.abspath(file_path)
@@ -125,7 +127,7 @@ task_files_json_tool = Tool(
     功能:
     - 根据任务ID查找 docs/executions/{task_id}/ 目录下的所有.md文件
     - 根据操作系统生成正确的文件访问路径
-    - Linux系统：生成 file:// URL格式  
+    - Linux系统：使用环境变量配置的文件服务器域名 (AGENT_FILE_BASE_URL)
     - macOS/Windows：生成完整的文件系统路径
     - 返回包含name和url的JSON数组
     

@@ -97,11 +97,7 @@ class WorkflowAnalyzer:
                 "type": "执行节点", 
                 "description": "执行Python代码和数据处理"
             },
-            "browser": {
-                "name": "browser",
-                "type": "执行节点",
-                "description": "浏览器自动化操作"
-            },
+
             "reporter": {
                 "name": "reporter",
                 "type": "整合输出节点",
@@ -133,7 +129,7 @@ class WorkflowAnalyzer:
             {"from": "planner", "to": "supervisor", "type": "direct"},
             {"from": "supervisor", "to": "researcher", "type": "conditional", "condition": "路由到researcher"},
             {"from": "supervisor", "to": "coder", "type": "conditional", "condition": "路由到coder"},
-            {"from": "supervisor", "to": "browser", "type": "conditional", "condition": "路由到browser"},
+
             {"from": "supervisor", "to": "reporter", "type": "conditional", "condition": "路由到reporter"},
             {"from": "supervisor", "to": "db_analyst", "type": "conditional", "condition": "路由到db_analyst"},
             {"from": "supervisor", "to": "document_parser", "type": "conditional", "condition": "路由到document_parser"},
@@ -141,7 +137,7 @@ class WorkflowAnalyzer:
             # 添加返回连接
             {"from": "researcher", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "coder", "to": "supervisor", "type": "direct", "condition": "任务完成"},
-            {"from": "browser", "to": "supervisor", "type": "direct", "condition": "任务完成"},
+
             {"from": "db_analyst", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "document_parser", "to": "supervisor", "type": "direct", "condition": "任务完成"},
             {"from": "chart_generator", "to": "supervisor", "type": "direct", "condition": "任务完成"},
@@ -273,7 +269,7 @@ class DiagramGenerator:
     class coordinator coordinator
     class planner planner
     class supervisor supervisor
-    class researcher,coder,browser,db_analyst,document_parser,chart_generator executor
+    class researcher,coder,db_analyst,document_parser,chart_generator executor
     class reporter reporter
 """
         
@@ -314,7 +310,7 @@ def generate_workflow_summary(workflow_info: Dict[str, Any]) -> str:
 4. **supervisor** → **执行节点** - 分发到具体智能体
    - researcher (网络搜索)
    - coder (代码执行) 
-   - browser (浏览器操作)
+   
    - db_analyst (数据分析)
    - document_parser (文档处理)
    - reporter (报告生成)

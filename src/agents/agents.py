@@ -3,7 +3,7 @@ from langgraph.prebuilt import create_react_agent
 from src.prompts import apply_prompt_template
 from src.tools import (
     bash_tool,
-    browser_tool,
+
     crawl_tool,
     python_repl_tool,
     tavily_tool,
@@ -31,11 +31,7 @@ coder_agent = create_react_agent(
     prompt=lambda state: apply_prompt_template("coder", state),
 )
 
-browser_agent = create_react_agent(
-    get_llm_by_type(AGENT_LLM_MAP["browser"]),
-    tools=[browser_tool],
-    prompt=lambda state: apply_prompt_template("browser", state),
-)
+
 
 db_analyst_agent = create_react_agent(
     get_llm_by_type(AGENT_LLM_MAP["db_analyst"]),

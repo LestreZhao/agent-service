@@ -10,7 +10,7 @@ AGENT_LLM_MAP: dict[str, LLMType] = {
     "supervisor": "reasoning",  # 决策使用basic llm
     "researcher": "reasoning",  # 简单搜索任务使用basic llm
     "coder": "basic",  # 编程任务使用basic llm
-    "browser": "vision",  # 浏览器操作使用vision llm
+
     "reporter": "basic",  # 编写报告使用basic llm
     "db_analyst": "basic",  # 数据库分析使用basic llm
     "document_parser": "basic",  # 文档解析使用basic llm

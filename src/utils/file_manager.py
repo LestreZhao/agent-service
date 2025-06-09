@@ -1,8 +1,12 @@
 import os
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, TypedDict
+# 延迟导入title_generator以避免循环导入
+
+logger = logging.getLogger(__name__)
 
 class ExecutionSummary(TypedDict):
     """执行总结信息"""
@@ -41,10 +45,25 @@ class ExecutionFileManager:
                              result_content: str, original_messages: List[Any]) -> ExecutionSummary:
         """保存执行节点的总结为.md文件"""
         task_dir = self.base_output_dir / task_id
-        summary_file = task_dir / f"{agent_name}_summary.md"
+        # 确保任务目录存在
+        task_dir.mkdir(parents=True, exist_ok=True)
         
         # 生成总结内容
         summary_content = self._generate_summary_content(agent_name, result_content, original_messages)
+        
+        # 使用大模型生成中文标题作为文件名
+        logger.info(f"正在为{agent_name}的执行结果生成中文标题...")
+        try:
+            # 延迟导入以避免循环导入
+            from src.utils.title_generator import title_generator
+            chinese_title = title_generator.generate_chinese_title(summary_content, agent_name)
+            filename = f"{chinese_title}.md"
+            logger.info(f"生成的文件名: {filename}")
+        except Exception as e:
+            logger.error(f"生成标题失败，使用默认文件名: {e}")
+            filename = f"{agent_name}_summary.md"
+        
+        summary_file = task_dir / filename
         
         with open(summary_file, 'w', encoding='utf-8') as f:
             f.write(summary_content)
@@ -57,6 +76,7 @@ class ExecutionFileManager:
             "summary_content": summary_content[:500] + "..." if len(summary_content) > 500 else summary_content
         }
         
+        logger.info(f"执行总结已保存到: {summary_file}")
         return execution_summary
     
     def _generate_summary_content(self, agent_name: str, result_content: str, 
@@ -73,19 +93,57 @@ class ExecutionFileManager:
             return summaries
         
         # 读取所有.md文件（除了plan.md和final_integration.md）
-        for md_file in task_dir.glob("*_summary.md"):
+        excluded_files = {'plan.md', 'final_integration.md'}
+        
+        for md_file in task_dir.glob("*.md"):
+            if md_file.name in excluded_files:
+                continue
+                
             try:
                 with open(md_file, 'r', encoding='utf-8') as f:
                     content = f.read()
+                    
+                    # 尝试从文件内容或文件名推断智能体名称
+                    agent_name = self._infer_agent_name(md_file.name, content)
+                    
                     summaries.append({
-                        "agent_name": md_file.stem.replace('_summary', ''),
+                        "agent_name": agent_name,
                         "file_path": str(md_file),
-                        "content": content
+                        "content": content,
+                        "title": md_file.stem  # 保存文件标题
                     })
             except Exception as e:
-                print(f"读取文件 {md_file} 失败: {e}")
+                logger.error(f"读取文件 {md_file} 失败: {e}")
         
         return summaries
+    
+    def _infer_agent_name(self, filename: str, content: str) -> str:
+        """从文件名或内容推断智能体名称"""
+        # 如果是旧格式的文件名，直接提取
+        if '_summary.md' in filename:
+            return filename.replace('_summary.md', '')
+        
+        # 否则根据内容或文件名特征推断
+        agent_indicators = {
+            'researcher': ['研究', '分析', '调研', '市场'],
+            'coder': ['代码', '编程', '开发', '脚本', '函数'],
+
+            'db_analyst': ['数据库', '查询', 'SQL', '数据分析'],
+            'document_parser': ['文档', '解析', 'PDF', 'Word'],
+            'reporter': ['报告', '总结', '整合', '综合'],
+            'chart_generator': ['图表', '可视化', '图形']
+        }
+        
+        content_lower = content.lower()
+        filename_lower = filename.lower()
+        
+        for agent, keywords in agent_indicators.items():
+            for keyword in keywords:
+                if keyword in content_lower or keyword in filename_lower:
+                    return agent
+        
+        # 默认返回文件名（不含扩展名）
+        return filename.replace('.md', '')
     
     def save_final_integration(self, task_id: str, integration_content: str) -> str:
         """保存最终整合输出"""
@@ -115,9 +173,11 @@ class ExecutionFileManager:
         if plan_file.exists():
             files_info["plan_file"] = str(plan_file)
         
-        # 检查总结文件
-        for summary_file in task_dir.glob("*_summary.md"):
-            files_info["summary_files"].append(str(summary_file))
+        # 检查总结文件（所有.md文件，除了plan.md和final_integration.md）
+        excluded_files = {'plan.md', 'final_integration.md'}
+        for md_file in task_dir.glob("*.md"):
+            if md_file.name not in excluded_files:
+                files_info["summary_files"].append(str(md_file))
         
         # 检查最终整合文件
         final_file = task_dir / "final_integration.md"

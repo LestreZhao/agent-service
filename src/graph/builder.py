@@ -6,7 +6,7 @@ from .nodes import (
     research_node,
     code_node,
     coordinator_node,
-    browser_node,  # 恢复 browser 节点
+
     reporter_node,
     planner_node,
     db_analyst_node,
@@ -24,7 +24,7 @@ def build_graph():
     builder.add_node("supervisor", supervisor_node)
     builder.add_node("researcher", research_node)
     builder.add_node("coder", code_node)
-    builder.add_node("browser", browser_node)  # 恢复 browser 节点
+
     builder.add_node("reporter", reporter_node)
     builder.add_node("db_analyst", db_analyst_node)
     builder.add_node("document_parser", document_parser_node)
