@@ -12,6 +12,7 @@ from langgraph.graph import END
 from src.agents.llm import get_llm_by_type
 from src.config import TEAM_MEMBERS
 from src.config.agents import AGENT_LLM_MAP
+from src.config import DISABLE_MD_FILE_GENERATION
 from src.tools.search import tavily_tool
 from src.utils.file_manager import ExecutionFileManager
 from src.utils.json_cleaner import clean_json_response
@@ -37,7 +38,7 @@ def research_node(state: State) -> Command[Literal["supervisor"]]:
     task_id = state.get("task_id")
     execution_summaries = state.get("execution_summaries", [])
     
-    if task_id:
+    if task_id and not DISABLE_MD_FILE_GENERATION:
         try:
             summary = file_manager.save_execution_summary(
                 task_id=task_id,
@@ -49,6 +50,8 @@ def research_node(state: State) -> Command[Literal["supervisor"]]:
             logger.info(f"研究总结已保存到: {summary['file_path']}")
         except Exception as e:
             logger.error(f"保存研究总结失败: {e}")
+    elif DISABLE_MD_FILE_GENERATION:
+        logger.info("MD文件生成已禁用，跳过保存研究总结")
     
     return Command(
         update={
@@ -78,7 +81,7 @@ def code_node(state: State) -> Command[Literal["supervisor"]]:
     task_id = state.get("task_id")
     execution_summaries = state.get("execution_summaries", [])
     
-    if task_id:
+    if task_id and not DISABLE_MD_FILE_GENERATION:
         try:
             summary = file_manager.save_execution_summary(
                 task_id=task_id,
@@ -90,6 +93,8 @@ def code_node(state: State) -> Command[Literal["supervisor"]]:
             logger.info(f"代码执行总结已保存到: {summary['file_path']}")
         except Exception as e:
             logger.error(f"保存代码执行总结失败: {e}")
+    elif DISABLE_MD_FILE_GENERATION:
+        logger.info("MD文件生成已禁用，跳过保存代码执行总结")
     
     return Command(
         update={
@@ -122,7 +127,7 @@ def db_analyst_node(state: State) -> Command[Literal["supervisor"]]:
     task_id = state.get("task_id")
     execution_summaries = state.get("execution_summaries", [])
     
-    if task_id:
+    if task_id and not DISABLE_MD_FILE_GENERATION:
         try:
             summary = file_manager.save_execution_summary(
                 task_id=task_id,
@@ -134,6 +139,8 @@ def db_analyst_node(state: State) -> Command[Literal["supervisor"]]:
             logger.info(f"数据分析总结已保存到: {summary['file_path']}")
         except Exception as e:
             logger.error(f"保存数据分析总结失败: {e}")
+    elif DISABLE_MD_FILE_GENERATION:
+        logger.info("MD文件生成已禁用，跳过保存数据分析总结")
     
     return Command(
         update={
@@ -163,7 +170,7 @@ def document_parser_node(state: State) -> Command[Literal["supervisor"]]:
     task_id = state.get("task_id")
     execution_summaries = state.get("execution_summaries", [])
     
-    if task_id:
+    if task_id and not DISABLE_MD_FILE_GENERATION:
         try:
             summary = file_manager.save_execution_summary(
                 task_id=task_id,
@@ -175,6 +182,8 @@ def document_parser_node(state: State) -> Command[Literal["supervisor"]]:
             logger.info(f"文档解析总结已保存到: {summary['file_path']}")
         except Exception as e:
             logger.error(f"保存文档解析总结失败: {e}")
+    elif DISABLE_MD_FILE_GENERATION:
+        logger.info("MD文件生成已禁用，跳过保存文档解析总结")
     
     return Command(
         update={
@@ -204,7 +213,7 @@ def chart_generator_node(state: State) -> Command[Literal["supervisor"]]:
     task_id = state.get("task_id")
     execution_summaries = state.get("execution_summaries", [])
     
-    if task_id:
+    if task_id and not DISABLE_MD_FILE_GENERATION:
         try:
             summary = file_manager.save_execution_summary(
                 task_id=task_id,
@@ -216,6 +225,8 @@ def chart_generator_node(state: State) -> Command[Literal["supervisor"]]:
             logger.info(f"图表生成总结已保存到: {summary['file_path']}")
         except Exception as e:
             logger.error(f"保存图表生成总结失败: {e}")
+    elif DISABLE_MD_FILE_GENERATION:
+        logger.info("MD文件生成已禁用，跳过保存图表生成总结")
     
     return Command(
         update={
@@ -287,9 +298,11 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
         
         # 保存计划文件
         task_id = state.get("task_id")
-        if task_id:
+        if task_id and not DISABLE_MD_FILE_GENERATION:
             plan_file_path = file_manager.save_plan(task_id, cleaned_response)
             logger.info(f"计划已保存到: {plan_file_path}")
+        elif DISABLE_MD_FILE_GENERATION:
+            logger.info("MD文件生成已禁用，跳过保存计划文件")
         
     except json.JSONDecodeError as e:
         logger.warning(f"Planner response is not a valid JSON: {e}")
@@ -352,7 +365,7 @@ def reporter_node(state: State) -> Command[Literal["__end__"]]:
         return Command(goto="__end__")
     
     try:
-        # 直接使用LLM和模板生成报告，避免循环导入
+        # 直接使用LLM和模板生成报告，不使用工具
         from src.prompts.template import apply_prompt_template
         
         logger.info(f"开始为任务 {task_id} 生成最终报告")
@@ -361,26 +374,17 @@ def reporter_node(state: State) -> Command[Literal["__end__"]]:
         # 获取reporter使用的LLM
         llm = get_llm_by_type(AGENT_LLM_MAP["reporter"])
         
-        # 创建包含工具的智能体
-        from src.tools.file_info_tool import task_files_json_tool
-        from langgraph.prebuilt import create_react_agent
-        
-        temp_reporter_agent = create_react_agent(
-            llm,
-            tools=[task_files_json_tool]
-        )
-        
-        # 调用智能体生成报告
-        result = temp_reporter_agent.invoke({"messages": messages})
+        # 直接调用LLM生成报告，不使用任何工具
+        response = llm.invoke(messages)
         logger.info("Reporter agent completed final report generation")
         
         # 获取reporter的响应内容
-        final_content = result["messages"][-1].content
+        final_content = response.content
         
         # 生成执行总结文件
         execution_summaries = state.get("execution_summaries", [])
         
-        if task_id:
+        if task_id and not DISABLE_MD_FILE_GENERATION:
             try:
                 summary = file_manager.save_execution_summary(
                     task_id=task_id,
@@ -392,6 +396,8 @@ def reporter_node(state: State) -> Command[Literal["__end__"]]:
                 logger.info(f"Reporter总结已保存到: {summary['file_path']}")
             except Exception as e:
                 logger.error(f"保存Reporter总结失败: {e}")
+        elif DISABLE_MD_FILE_GENERATION:
+            logger.info("MD文件生成已禁用，跳过保存Reporter总结")
         
         logger.debug(f"Reporter最终内容: {final_content[:500]}...")
         

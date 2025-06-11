@@ -16,6 +16,8 @@ from .env import (
     # Other configurations
 
     FIRECRAWL_API_KEY,
+    # MD file generation control
+    DISABLE_MD_FILE_GENERATION,
 )
 from .tools import TAVILY_MAX_RESULTS
 
@@ -42,4 +44,6 @@ __all__ = [
     "TAVILY_MAX_RESULTS",
 
     "FIRECRAWL_API_KEY",
+    # MD file generation control
+    "DISABLE_MD_FILE_GENERATION",
 ]

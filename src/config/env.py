@@ -29,3 +29,6 @@ FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 
 # File server configuration
 AGENT_FILE_BASE_URL = os.getenv("AGENT_FILE_BASE_URL", "https://agentfile.fusiontech.cn")
+
+# MD file generation control
+DISABLE_MD_FILE_GENERATION = os.getenv("DISABLE_MD_FILE_GENERATION", "false").lower() in ["true", "1", "yes"]
