@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from langgraph.graph import END
 
-from src.agents.llm import get_llm_by_type
+from src.agents.llm import get_llm_by_provider
 from src.config import TEAM_MEMBERS
 from src.config.agents import AGENT_LLM_MAP
 from src.config import DISABLE_MD_FILE_GENERATION
@@ -250,7 +250,7 @@ def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     logger.info("Supervisor evaluating next action")
     messages = apply_prompt_template("supervisor", state)
     response = (
-        get_llm_by_type(AGENT_LLM_MAP["supervisor"])
+        get_llm_by_provider(AGENT_LLM_MAP["supervisor"])
         .with_structured_output(Router)
         .invoke(messages)
     )
@@ -272,10 +272,11 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     from src.prompts.template import apply_prompt_template
     logger.info("Planner generating full plan")
     messages = apply_prompt_template("planner", state)
-    # whether to enable deep thinking mode
-    llm = get_llm_by_type("basic")
+    # 使用配置映射获取planner的LLM厂商
+    llm = get_llm_by_provider(AGENT_LLM_MAP["planner"])
+    # 深度思考模式可以覆盖为OpenAI（如果需要的话）
     if state.get("deep_thinking_mode"):
-        llm = get_llm_by_type("reasoning")
+        llm = get_llm_by_provider("openai")
     if state.get("search_before_planning"):
         searched_content = tavily_tool.invoke({"query": state["messages"][-1].content})
         messages = deepcopy(messages)
@@ -335,7 +336,7 @@ def coordinator_node(state: State) -> Command[Literal["planner", "__end__"]]:
         output_directory = state["output_directory"]
     
     messages = apply_prompt_template("coordinator", state)
-    response = get_llm_by_type(AGENT_LLM_MAP["coordinator"]).invoke(messages)
+    response = get_llm_by_provider(AGENT_LLM_MAP["coordinator"]).invoke(messages)
     logger.debug(f"Current state messages: {state['messages']}")
     logger.debug(f"coordinator response: {response}")
 
@@ -372,7 +373,7 @@ def reporter_node(state: State) -> Command[Literal["__end__"]]:
         messages = apply_prompt_template("reporter", state)
         
         # 获取reporter使用的LLM
-        llm = get_llm_by_type(AGENT_LLM_MAP["reporter"])
+        llm = get_llm_by_provider(AGENT_LLM_MAP["reporter"])
         
         # 直接调用LLM生成报告，不使用任何工具
         response = llm.invoke(messages)

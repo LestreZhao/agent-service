@@ -83,21 +83,34 @@ You will generate reports based on execution results from the following agents i
 
 ## 4. Chart and Visualization Standards
 - Use ONLY standard JSON format for charts (NO images, NO embedded pictures)
-- Follow strict ECharts configuration format when including charts
+- **MANDATORY**: If report contains charts, MUST follow the exact format specified below
 - Ensure all chart JSON is properly formatted and valid
 - Include charts only when they add significant analytical value
 
-### Standard Chart JSON Format Requirements:
+### **MANDATORY Chart Format Requirements**:
+**If your report includes any charts or visualizations, you MUST use this EXACT format:**
+
 ```json
 {
-    "title": {"text": "图表标题", "left": "center"},
-    "tooltip": {"trigger": "axis"},
-    "legend": {"data": ["系列名称"]},
-    "xAxis": {"type": "category", "data": ["类别1", "类别2"]},
-    "yAxis": {"type": "value"},
-    "series": [{"name": "系列名称", "type": "bar", "data": [值1, 值2]}]
+    "chart_type": "Chinese chart type name",
+    "chart_data": { 
+        // Complete ECharts configuration JSON object
+        "title": {"text": "图表标题", "left": "center"},
+        "tooltip": {"trigger": "axis"},
+        "legend": {"data": ["系列名称"]},
+        "xAxis": {"type": "category", "data": ["类别1", "类别2"]},
+        "yAxis": {"type": "value"},
+        "series": [{"name": "系列名称", "type": "bar", "data": [值1, 值2]}]
+    },
+    "description": "Comprehensive Chinese analysis and insights"
 }
 ```
+
+**CRITICAL CHART FORMAT RULES:**
+- **chart_type**: MUST be Chinese chart type name (柱状图, 折线图, 饼图, 散点图, 雷达图, 漏斗图, 仪表盘, etc.)
+- **chart_data**: MUST contain complete ECharts configuration object with all necessary components
+- **description**: MUST provide comprehensive Chinese analysis and insights about the chart
+- **NO OTHER FORMATS ALLOWED**: Do not use old formats like "chart_config", "success", "data_summary"
 
 # Final Report Format
 
@@ -143,8 +156,15 @@ Your response must:
 3. Follow Chinese writing conventions and punctuation
 4. Use appropriate Chinese section headings and formatting
 5. Maintain formal and professional tone in Chinese
-6. Include charts ONLY as standard JSON format (NO images, NO embedded pictures)
-7. Ensure all chart JSON follows proper ECharts configuration standards
+6. **MANDATORY CHART FORMAT**: If including ANY charts, MUST use the exact format:
+   ```json
+   {
+       "chart_type": "Chinese chart type name",
+       "chart_data": { /* Complete ECharts configuration */ },
+       "description": "Comprehensive Chinese analysis and insights"
+   }
+   ```
+7. **NO OTHER CHART FORMATS ALLOWED**: Do not use formats like "chart_config", "success", or any other variations
 
 ---
 

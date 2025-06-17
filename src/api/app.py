@@ -139,3 +139,103 @@ async def chat_endpoint(request: ChatRequest, req: Request):
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/config/agents")
+async def get_agent_configuration():
+    """
+    获取智能体配置信息
+    
+    Returns:
+        智能体和LLM配置的详细信息
+    """
+    try:
+        from src.utils.startup_info import startup_display
+        from src.agents.llm import list_supported_providers
+        
+        # 获取配置信息
+        agent_mapping = startup_display.get_agent_model_mapping()
+        llm_usage = startup_display.get_llm_usage_summary()
+        
+        # 构建详细的配置信息
+        agent_details = []
+        for agent_name, agent_info in startup_display.agent_info.items():
+            agent_details.append({
+                "name": agent_name,
+                "description": agent_info["description"],
+                "llm_type": agent_info["llm_type"],
+                "model": agent_info["model"],
+                "provider": agent_info["provider"],
+                "is_team_member": agent_info["is_team_member"]
+            })
+        
+        # LLM配置信息
+        llm_configs = []
+        for llm_type, config in startup_display.llm_configs.items():
+            llm_configs.append({
+                "type": llm_type,
+                "model": config["model"],
+                "provider": config["provider"],
+                "base_url": config["base_url"],
+                "api_key_configured": config["api_key_configured"]
+            })
+        
+        # 获取支持的厂商信息
+        supported_providers = list_supported_providers()
+        
+        return {
+            "success": True,
+            "data": {
+                "agents": agent_details,
+                "llm_configs": llm_configs,
+                "supported_providers": supported_providers,
+                "team_members": list(TEAM_MEMBERS),
+                "usage_statistics": llm_usage,
+                "total_agents": len(agent_details)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting agent configuration: {e}")
+        raise HTTPException(status_code=500, detail=f"获取配置信息失败: {str(e)}")
+
+
+@app.get("/api/config/providers")
+async def get_supported_providers():
+    """
+    获取支持的LLM厂商信息
+    
+    Returns:
+        支持的厂商详细信息
+    """
+    try:
+        from src.agents.llm import list_supported_providers, detect_provider_by_model
+        
+        providers = list_supported_providers()
+        
+        # 添加一些示例模型的检测结果
+        example_models = [
+            "gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.5-pro-preview-06-05",
+            "qwen2-7b-instruct", "deepseek-chat", "llama3.1:8b"
+        ]
+        
+        model_detection_examples = []
+        for model in example_models:
+            provider = detect_provider_by_model(model)
+            model_detection_examples.append({
+                "model": model,
+                "detected_provider": provider
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "providers": providers,
+                "model_detection_examples": model_detection_examples,
+                "total_providers": len(providers)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting provider information: {e}")
+        raise HTTPException(status_code=500, detail=f"获取厂商信息失败: {str(e)}")

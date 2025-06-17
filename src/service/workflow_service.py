@@ -9,7 +9,7 @@ from src.graph import build_graph
 from src.utils.json_cleaner import clean_json_response
 from langchain_community.adapters.openai import convert_message_to_dict
 import uuid
-from ..agents.llm import get_llm_by_type
+from ..agents.llm import get_llm_by_provider
 
 # Configure logging
 logging.basicConfig(
@@ -253,15 +253,34 @@ async def run_agent_workflow(
             else:
                 # Check if the message is from the coordinator
                 if node == "coordinator":
+                    # 检查是否包含handoff函数调用（包括各种格式）
+                    if ("handoff_to_planner" in content or 
+                        "```python" in content or 
+                        "```" in content):
+                        is_handoff_case = True
+                        continue  # 完全跳过包含handoff或代码块的消息
+                    
+                    # 如果已经识别为handoff情况，跳过所有后续coordinator消息
+                    if is_handoff_case:
+                        continue
+                    
+                    # 正常的coordinator消息（如问候、回答等）
                     if len(coordinator_cache) < MAX_CACHE_SIZE:
                         coordinator_cache.append(content)
                         cached_content = "".join(coordinator_cache)
-                        if cached_content.startswith("handoff"):
+                        
+                        # 再次检查缓存的完整内容（包括各种格式）
+                        if ("handoff_to_planner" in cached_content or 
+                            "```python" in cached_content or 
+                            "```" in cached_content):
                             is_handoff_case = True
+                            coordinator_cache = []  # 清空缓存
                             continue
+                        
                         if len(coordinator_cache) < MAX_CACHE_SIZE:
                             continue
-                        # Send the cached message
+                        
+                        # 发送缓存的消息
                         ydata = {
                             "event": "message",
                             "data": {
@@ -269,8 +288,9 @@ async def run_agent_workflow(
                                 "delta": {"content": cached_content},
                             },
                         }
-                    elif not is_handoff_case:
-                        # For other agents, send the message directly
+                        coordinator_cache = []  # 清空缓存
+                    else:
+                        # 直接发送消息
                         ydata = {
                             "event": "message",
                             "data": {
@@ -278,9 +298,24 @@ async def run_agent_workflow(
                                 "delta": {"content": content},
                             },
                         }
-                    else:
-                        # is_handoff_case is True, skip this message
-                        continue
+                elif node == "db_analyst":
+                    # 过滤db_analyst的thought内容
+                    if (content.strip().startswith("thought:") or 
+                        "thought:" in content.lower() or
+                        content.strip().startswith("我需要") or
+                        content.strip().startswith("让我") or
+                        content.strip().startswith("I need") or
+                        content.strip().startswith("Let me")):
+                        continue  # 跳过thought相关内容
+                    
+                    # 发送正常的分析内容
+                    ydata = {
+                        "event": "message",
+                        "data": {
+                            "message_id": data["chunk"].id,
+                            "delta": {"content": content},
+                        },
+                    }
                 else:
                     # For other agents, send the message directly
                     ydata = {

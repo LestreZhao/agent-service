@@ -106,30 +106,36 @@ chart_config = chart_generation_tool.invoke({
 
 ### 1. 代码规范
 
-**图表配置结构：**
-```python
+**图表配置结构（新标准格式）：**
+```json
 {
-    "success": True,
-    "chart_type": "bar",
-    "chart_config": {
+    "chart_type": "柱状图",
+    "chart_data": {
         "title": {"text": "图表标题"},
         "xAxis": {"type": "category", "data": []},
         "yAxis": {"type": "value"},
         "series": [{"type": "bar", "data": []}]
     },
-    "data_summary": {
-        "records_count": 10,
-        "columns": ["name", "value"],
-        "chart_title": "标题"
-    }
+    "description": "详细的中文分析和洞察"
 }
 ```
 
-**错误处理：**
+**重要更新**：
+- ❌ 旧格式不再使用：`success`, `chart_config`, `data_summary`
+- ✅ 新标准格式：`chart_type`, `chart_data`, `description`
+- ✅ 图表类型必须为中文名称
+```
+
+**错误处理（更新格式）：**
 ```python
 try:
     chart_config = generate_chart_config(data, chart_type, title, requirements)
-    return {"success": True, "chart_config": chart_config}
+    chinese_chart_type = get_chinese_chart_type(chart_type)
+    return {
+        "chart_type": chinese_chart_type,
+        "chart_data": chart_config,
+        "description": "生成的图表分析说明"
+    }
 except Exception as e:
     return {"success": False, "error": f"生成图表失败: {str(e)}"}
 ```

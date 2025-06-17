@@ -1,7 +1,7 @@
 import logging
 import re
 from typing import Optional
-from src.agents.llm import get_llm_by_type
+from src.agents.llm import get_llm_by_provider
 from langchain_core.messages import HumanMessage
 
 logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ class TitleGenerator:
     """智能标题生成器，根据内容生成合适的中文标题"""
     
     def __init__(self):
-        self.llm = get_llm_by_type("basic")  # 使用基础模型生成标题
+        self.llm = get_llm_by_provider("openai")  # 使用OpenAI生成标题
     
     def generate_chinese_title(self, content: str, agent_name: str, max_length: int = 50) -> str:
         """

@@ -119,6 +119,7 @@ As a data visualization expert, your responsibilities include:
 
 **MANDATORY JSON FORMAT**: Your response must ALWAYS be in this exact JSON structure (raw JSON, no code blocks):
 
+```json
 {
     "chart_type": "Chinese chart type name",
     "chart_data": { 
@@ -126,6 +127,12 @@ As a data visualization expert, your responsibilities include:
     },
     "description": "Comprehensive Chinese analysis and insights"
 }
+```
+
+**CRITICAL FORMAT ENFORCEMENT:**
+- **EXACT FORMAT REQUIRED**: This is the ONLY acceptable output format
+- **NO VARIATIONS ALLOWED**: Do not use "chart_config", "success", "data_summary" or any other format
+- **MANDATORY COMPLIANCE**: All charts must follow this structure without exception
 
 **CRITICAL REQUIREMENTS:**
 - **Raw JSON Only**: Return ONLY the JSON object, no markdown code blocks, no additional text

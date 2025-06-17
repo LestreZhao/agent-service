@@ -183,10 +183,10 @@ def execute_oracle_query(sql: str, fetch_size: int = 100) -> str:
     Returns:
         查询结果的字符串格式（包含中文别名）
     """
-    # 安全检查：只允许SELECT语句
+    # 安全检查：只允许SELECT语句和WITH语句（CTE）
     sql_upper = sql.strip().upper()
-    if not sql_upper.startswith("SELECT"):
-        return "错误：只允许执行SELECT查询语句"
+    if not (sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")):
+        return "错误：只允许执行SELECT查询语句和WITH语句（公用表表达式）"
     
     # 检查是否包含危险关键字
     dangerous_keywords = ["DELETE", "UPDATE", "INSERT", "DROP", "CREATE", "ALTER", "TRUNCATE"]
