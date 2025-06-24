@@ -1,0 +1,62 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 智能体系统架构
+
+## 智能体配置
+
+智能体配置在 [src/config/agents.py](mdc:src/config/agents.py) 中定义，主要智能体实现在 [src/agents/agents.py](mdc:src/agents/agents.py) 中。
+
+## 提示词系统
+
+所有智能体的提示词模板位于 `src/prompts/` 目录：
+- [researcher.md](mdc:src/prompts/researcher.md) - 研究员提示词
+- [coder.md](mdc:src/prompts/coder.md) - 程序员提示词
+- [db_analyst.md](mdc:src/prompts/db_analyst.md) - 数据分析师提示词
+- [document_parser.md](mdc:src/prompts/document_parser.md) - 文档解析器提示词
+- [chart_generator.md](mdc:src/prompts/chart_generator.md) - 图表生成器提示词
+- [browser.md](mdc:src/prompts/browser.md) - 浏览器提示词
+- [reporter.md](mdc:src/prompts/reporter.md) - 报告员提示词
+- [supervisor.md](mdc:src/prompts/supervisor.md) - 监督员提示词
+- [coordinator.md](mdc:src/prompts/coordinator.md) - 协调员提示词
+- [planner.md](mdc:src/prompts/planner.md) - 规划员提示词
+
+## LLM 配置
+
+LLM 配置和模型选择在 [src/agents/llm.py](mdc:src/agents/llm.py) 中管理，支持：
+- OpenAI GPT 系列
+- DeepSeek 模型
+- Google Gemini 模型
+
+## 智能体工具
+
+每个智能体都有特定的工具集：
+
+### 通用工具 (src/tools/)
+- [python_repl.py](mdc:src/tools/python_repl.py) - Python 代码执行
+- [bash_tool.py](mdc:src/tools/bash_tool.py) - 系统命令执行
+- [search.py](mdc:src/tools/search.py) - Tavily 搜索集成
+
+### 专业工具
+- [oracle_db.py](mdc:src/tools/oracle_db.py) - Oracle 数据库查询工具
+- [document_parser.py](mdc:src/tools/document_parser.py) - 文档解析工具
+- [document_tool.py](mdc:src/tools/document_tool.py) - MinIO 文档管理
+- [chart_tool.py](mdc:src/tools/chart_tool.py) - ECharts 图表生成工具
+- [crawl.py](mdc:src/tools/crawl.py) - 网页爬取工具
+
+## 设计原则
+
+### 执行静默原则
+- 智能体在工具调用时完全静默，不输出解释文本
+- 只在任务完成后输出最终分析报告
+- 禁止任何执行过程描述或状态更新消息
+
+### 中文输出要求
+- 所有智能体的最终输出必须使用中文
+- 提示词使用英文描述能力，但强制中文输出
+
+### 自我纠错机制
+- 智能体具备自动错误检测和修正能力
+- 内置质量检查和验证机制

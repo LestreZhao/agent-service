@@ -1,0 +1,218 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 工具系统架构
+
+## 工具分类
+
+### 数据处理工具
+- [python_repl.py](mdc:src/tools/python_repl.py) - Python 代码执行环境
+- [chart_tool.py](mdc:src/tools/chart_tool.py) - ECharts 图表生成工具
+- [oracle_db.py](mdc:src/tools/oracle_db.py) - Oracle 数据库操作工具
+
+### 文档处理工具
+- [document_parser.py](mdc:src/tools/document_parser.py) - 多格式文档解析
+- [document_tool.py](mdc:src/tools/document_tool.py) - MinIO 文档管理
+- [file_info_tool.py](mdc:src/tools/file_info_tool.py) - 文件信息提取
+
+### 网络工具
+- [search.py](mdc:src/tools/search.py) - Tavily 搜索集成
+- [crawl.py](mdc:src/tools/crawl.py) - 网页爬取工具
+
+### 系统工具
+- [bash_tool.py](mdc:src/tools/bash_tool.py) - 系统命令执行
+
+## 工具装饰器系统
+
+### 核心装饰器
+[src/tools/decorators.py](mdc:src/tools/decorators.py) 提供以下装饰器：
+- `@tool_error_handler` - 统一错误处理
+- `@tool_logger` - 工具调用日志记录
+- `@tool_retry` - 自动重试机制
+- `@tool_validator` - 参数验证
+
+### 使用示例
+```python
+from src.tools.decorators import tool_error_handler, tool_logger
+
+@tool_error_handler
+@tool_logger
+def my_custom_tool(param1: str, param2: int = 10) -> dict:
+    """自定义工具示例"""
+    # 工具逻辑
+    return {"result": "success"}
+```
+
+## 核心工具详解
+
+### Oracle 数据库工具
+[src/tools/oracle_db.py](mdc:src/tools/oracle_db.py) 功能：
+- 自动模式发现和表结构分析
+- 智能 SQL 查询生成
+- 查询结果缓存和优化
+- 连接池管理
+- 事务支持
+
+### 图表生成工具
+[src/tools/chart_tool.py](mdc:src/tools/chart_tool.py) 支持：
+- 多种图表类型（柱状图、折线图、饼图等）
+- ECharts 完整配置生成
+- 数据自动分析和图表推荐
+- 响应式设计
+- 交互功能
+
+### 文档解析工具
+[src/tools/document_parser.py](mdc:src/tools/document_parser.py) 支持格式：
+- PDF 文档
+- Word 文档 (.docx)
+- 纯文本文件
+- HTML 内容
+- 自动格式检测
+
+## 工具配置
+
+### 配置管理
+工具配置在 [src/config/tools.py](mdc:src/config/tools.py) 中管理。
+
+### 环境变量
+工具相关的环境变量在 [src/config/env.py](mdc:src/config/env.py) 中定义：
+- 数据库连接参数
+- API 密钥
+- 文件存储路径
+- 缓存配置
+
+## 工具注册
+
+### 自动注册
+工具在 [src/tools/__init__.py](mdc:src/tools/__init__.py) 中自动注册：
+```python
+from .python_repl import python_repl_tool
+from .oracle_db import oracle_query_tool
+from .chart_tool import chart_generator_tool
+```
+
+### 智能体工具绑定
+在智能体配置中指定可用工具：
+```python
+researcher_tools = [search_tool, crawl_tool]
+coder_tools = [python_repl_tool, bash_tool]
+db_analyst_tools = [oracle_query_tool, python_repl_tool]
+```
+
+## 新工具开发
+
+### 开发步骤
+1. **创建工具文件**: 在 `src/tools/` 目录创建新文件
+2. **实现工具函数**: 使用标准装饰器
+3. **添加类型注解**: 确保参数和返回值类型正确
+4. **编写文档**: 添加详细的 docstring
+5. **注册工具**: 在 `__init__.py` 中注册
+6. **配置智能体**: 将工具添加到相应智能体
+
+### 工具开发模板
+```python
+from typing import Dict, Any
+from src.tools.decorators import tool_error_handler, tool_logger
+
+@tool_error_handler
+@tool_logger
+def my_new_tool(
+    param1: str,
+    param2: int = 10,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    工具功能描述
+    
+    Args:
+        param1: 参数1描述
+        param2: 参数2描述，默认值10
+        
+    Returns:
+        Dict containing:
+        - success: 是否成功
+        - result: 执行结果
+        - message: 状态消息
+    """
+    try:
+        # 工具核心逻辑
+        result = process_logic(param1, param2)
+        
+        return {
+            "success": True,
+            "result": result,
+            "message": "执行成功"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "result": None,
+            "message": f"执行失败: {str(e)}"
+        }
+```
+
+## 工具测试
+
+### 单元测试
+每个工具都应该有对应的测试文件：
+```python
+# tests/test_my_tool.py
+def test_my_new_tool():
+    result = my_new_tool("test_param", 5)
+    assert result["success"] is True
+    assert "result" in result
+```
+
+### 集成测试
+在 `tests/integration/` 目录中进行集成测试。
+
+## 性能优化
+
+### 缓存策略
+- 数据库查询结果缓存
+- 文档解析结果缓存
+- API 调用结果缓存
+
+### 异步处理
+优先使用异步版本的工具函数：
+```python
+import asyncio
+
+async def async_tool_example():
+    result = await async_database_query()
+    return result
+```
+
+### 资源管理
+- 连接池管理
+- 内存使用优化
+- 临时文件清理
+
+## 错误处理
+
+### 标准错误格式
+所有工具都应返回统一的错误格式：
+```python
+{
+    "success": False,
+    "error_code": "TOOL_ERROR_001",
+    "message": "详细错误描述",
+    "details": {...}  # 可选的错误详情
+}
+```
+
+### 重试机制
+使用 [src/utils/retry_config.py](mdc:src/utils/retry_config.py) 中的重试配置。
+
+## 监控和日志
+
+### 工具调用监控
+- 调用频率统计
+- 执行时间监控
+- 错误率统计
+- 资源使用监控
+
+### 日志记录
+使用 [src/utils/logger_config.py](mdc:src/utils/logger_config.py) 中的日志配置。

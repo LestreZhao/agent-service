@@ -1,0 +1,312 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# 配置管理系统
+
+## 配置架构
+
+### 配置层次
+1. **环境变量配置** - [src/config/env.py](mdc:src/config/env.py)
+2. **智能体配置** - [src/config/agents.py](mdc:src/config/agents.py)
+3. **数据库配置** - [src/config/database.py](mdc:src/config/database.py)
+4. **存储配置** - [src/config/minio.py](mdc:src/config/minio.py)
+5. **工具配置** - [src/config/tools.py](mdc:src/config/tools.py)
+
+## 环境变量管理
+
+### 必需环境变量
+详见 [ENV_CONFIG_GUIDE.md](mdc:ENV_CONFIG_GUIDE.md)：
+
+#### AI 模型配置
+```bash
+# OpenAI
+OPENAI_API_KEY=sk-your-openai-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# DeepSeek (可选)
+DEEPSEEK_API_KEY=your-deepseek-key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+
+# Google Gemini (可选)
+GOOGLE_API_KEY=your-google-key
+```
+
+#### 搜索服务配置
+```bash
+# Tavily 搜索
+TAVILY_API_KEY=your-tavily-key
+
+# FireCrawl (可选)
+FIRECRAWL_API_KEY=your-firecrawl-key
+```
+
+#### 数据库配置
+```bash
+# Oracle 数据库
+ORACLE_HOST=localhost
+ORACLE_PORT=1521
+ORACLE_SERVICE_NAME=XE
+ORACLE_USERNAME=your-username
+ORACLE_PASSWORD=your-password
+```
+
+#### 存储配置
+```bash
+# MinIO 对象存储
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_SECURE=false
+MINIO_BUCKET_NAME=documents
+```
+
+### 可选配置
+```bash
+# 功能开关
+DISABLE_MD_FILE_GENERATION=false
+ENABLE_DEBUG_MODE=false
+ENABLE_CACHE=true
+
+# 性能配置
+MAX_WORKERS=4
+REQUEST_TIMEOUT=30
+RETRY_ATTEMPTS=3
+```
+
+## 智能体配置
+
+### 配置结构
+在 [src/config/agents.py](mdc:src/config/agents.py) 中定义：
+
+```python
+TEAM_MEMBERS = {
+    "researcher": {
+        "name": "研究员",
+        "description": "专业的信息研究和分析专家",
+        "tools": ["search_tool", "crawl_tool"],
+        "llm_config": "default"
+    },
+    "coder": {
+        "name": "程序员", 
+        "description": "Python 编程和数据处理专家",
+        "tools": ["python_repl_tool", "bash_tool"],
+        "llm_config": "coding"
+    }
+    # ... 其他智能体配置
+}
+```
+
+### LLM 配置
+在 [src/agents/llm.py](mdc:src/agents/llm.py) 中管理不同模型配置：
+
+```python
+LLM_CONFIGS = {
+    "default": {
+        "model": "gpt-4o",
+        "temperature": 0.1,
+        "max_tokens": 4000
+    },
+    "coding": {
+        "model": "gpt-4o",
+        "temperature": 0.0,
+        "max_tokens": 8000
+    }
+}
+```
+
+## 数据库配置
+
+### 连接管理
+[src/config/database.py](mdc:src/config/database.py) 处理数据库连接：
+
+```python
+DATABASE_CONFIG = {
+    "host": os.getenv("ORACLE_HOST"),
+    "port": int(os.getenv("ORACLE_PORT", 1521)),
+    "service_name": os.getenv("ORACLE_SERVICE_NAME"),
+    "username": os.getenv("ORACLE_USERNAME"),
+    "password": os.getenv("ORACLE_PASSWORD"),
+    "pool_size": 5,
+    "max_overflow": 10
+}
+```
+
+### 连接池配置
+- `pool_size`: 连接池基本大小
+- `max_overflow`: 最大溢出连接数
+- `pool_timeout`: 连接超时时间
+- `pool_recycle`: 连接回收时间
+
+## 存储配置
+
+### MinIO 配置
+[src/config/minio.py](mdc:src/config/minio.py) 管理对象存储：
+
+```python
+MINIO_CONFIG = {
+    "endpoint": os.getenv("MINIO_ENDPOINT"),
+    "access_key": os.getenv("MINIO_ACCESS_KEY"),
+    "secret_key": os.getenv("MINIO_SECRET_KEY"),
+    "secure": os.getenv("MINIO_SECURE", "false").lower() == "true",
+    "bucket_name": os.getenv("MINIO_BUCKET_NAME", "documents")
+}
+```
+
+## 项目配置
+
+### pyproject.toml 配置
+[pyproject.toml](mdc:pyproject.toml) 包含：
+
+#### 项目元数据
+```toml
+[project]
+name = "fusionai"
+version = "0.1.0"
+description = "FusionAI - AI自动化框架"
+requires-python = ">=3.12"
+```
+
+#### 依赖管理
+```toml
+dependencies = [
+    "httpx>=0.28.1",
+    "langchain-community>=0.3.19",
+    "langgraph>=0.3.5",
+    "fastapi>=0.110.0",
+    # ... 其他依赖
+]
+```
+
+#### 开发工具配置
+```toml
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=src"
+```
+
+## 配置最佳实践
+
+### 环境变量命名
+- 使用大写字母和下划线
+- 按功能分组前缀（如 `ORACLE_`, `MINIO_`）
+- 布尔值使用 `true`/`false`
+- 数值类型包含单位说明
+
+### 配置验证
+```python
+def validate_config():
+    """验证配置完整性"""
+    required_vars = [
+        "OPENAI_API_KEY",
+        "TAVILY_API_KEY", 
+        "ORACLE_HOST"
+    ]
+    
+    missing_vars = []
+    for var in required_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
+    
+    if missing_vars:
+        raise ValueError(f"缺少必需环境变量: {missing_vars}")
+```
+
+### 配置热重载
+```python
+import os
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+class ConfigReloadHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if event.src_path.endswith('.env'):
+            reload_config()
+```
+
+## 配置安全
+
+### 敏感信息保护
+- 使用环境变量存储敏感信息
+- 避免在代码中硬编码密钥
+- 使用 `.env` 文件进行本地开发
+- 生产环境使用容器环境变量
+
+### 配置文件权限
+```bash
+# 设置 .env 文件权限
+chmod 600 .env
+
+# Git 忽略敏感文件
+echo ".env" >> .gitignore
+echo "*.env" >> .gitignore
+```
+
+## 配置文档
+
+### 环境变量文档
+维护 [ENV_CONFIG_GUIDE.md](mdc:ENV_CONFIG_GUIDE.md) 包含：
+- 所有环境变量说明
+- 默认值和示例
+- 配置步骤指南
+- 故障排除方法
+
+### 配置变更记录
+在 [CHANGELOG.md](mdc:CHANGELOG.md) 中记录配置变更：
+- 新增环境变量
+- 配置格式变更
+- 默认值调整
+- 弃用配置项
+
+## 多环境管理
+
+### 环境分离
+```bash
+# 开发环境
+.env.development
+
+# 测试环境  
+.env.testing
+
+# 生产环境
+.env.production
+```
+
+### 配置加载
+```python
+import os
+from dotenv import load_dotenv
+
+def load_environment_config():
+    env = os.getenv("ENVIRONMENT", "development")
+    env_file = f".env.{env}"
+    
+    if os.path.exists(env_file):
+        load_dotenv(env_file)
+    else:
+        load_dotenv(".env")
+```
+
+## 配置监控
+
+### 配置健康检查
+```python
+def config_health_check():
+    """检查配置健康状态"""
+    checks = {
+        "database": check_database_connection(),
+        "minio": check_minio_connection(),
+        "llm": check_llm_availability()
+    }
+    return checks
+```
+
+### 配置使用统计
+- 跟踪配置项使用频率
+- 监控配置变更影响
+- 优化配置加载性能

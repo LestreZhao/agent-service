@@ -179,3 +179,110 @@ ENDPOINTS = {
 - 集成测试验证API交互流程
 - 压力测试评估API性能和稳定性
 - 定期验证外部API的可用性和变更
+
+# API 集成指南
+
+## 外部 API 集成
+
+### OpenAI API
+配置在 [src/agents/llm.py](mdc:src/agents/llm.py) 中，支持：
+- GPT-4 系列模型
+- 自定义 base_url 配置
+- API 密钥管理
+
+### Tavily 搜索 API
+集成在 [src/tools/search.py](mdc:src/tools/search.py)：
+- 语义搜索
+- 实时网络信息获取
+- 搜索结果过滤和排序
+
+### FireCrawl API
+网页爬取服务 [src/crawler/firecrawl_client.py](mdc:src/crawler/firecrawl_client.py)：
+- 智能网页内容提取
+- 结构化数据提取
+- 反爬虫规避
+
+## 数据库集成
+
+### Oracle 数据库
+[src/tools/oracle_db.py](mdc:src/tools/oracle_db.py) 提供完整的 Oracle 集成：
+- 连接管理
+- SQL 查询执行
+- 结果集处理
+- 事务管理
+
+数据库配置在 [src/config/database.py](mdc:src/config/database.py) 中。
+
+## 对象存储
+
+### MinIO 集成
+[src/config/minio.py](mdc:src/config/minio.py) 和 [src/tools/document_tool.py](mdc:src/tools/document_tool.py)：
+- 文件上传下载
+- 文档存储管理
+- 访问权限控制
+
+## FastAPI 应用
+
+### 主应用
+[src/api/app.py](mdc:src/api/app.py) 定义了主要的 API 端点：
+- 工作流执行端点
+- WebSocket 实时通信
+- 状态查询接口
+
+### 文档路由
+[src/api/document_routes.py](mdc:src/api/document_routes.py) 处理文档相关操作：
+- 文档上传
+- 文档解析
+- 文档查询
+
+## API 认证和安全
+
+### 环境变量安全
+所有敏感信息通过环境变量管理，配置在 [src/config/env.py](mdc:src/config/env.py)。
+
+### API 密钥管理
+- OpenAI API 密钥
+- Tavily API 密钥
+- 数据库凭据
+- MinIO 访问密钥
+
+## 错误处理
+
+### 重试机制
+[src/utils/retry_config.py](mdc:src/utils/retry_config.py) 提供 API 调用的重试策略。
+
+### 错误监控
+所有 API 调用都有详细的错误日志和异常处理。
+
+## WebSocket 集成
+
+### 实时通信
+支持 WebSocket 连接，用于：
+- 实时工作流状态更新
+- 智能体执行进度通知
+- 错误和警告消息
+
+## 文档处理 API
+
+### 支持的文档格式
+- PDF ([src/tools/document_parser.py](mdc:src/tools/document_parser.py))
+- Word 文档
+- 纯文本文件
+- HTML 内容
+
+### 文档解析流程
+1. 文档上传到 MinIO
+2. 自动格式识别
+3. 内容提取和结构化
+4. 语义分析和索引
+
+## API 性能优化
+
+### 异步处理
+FastAPI 应用使用异步处理，提高并发性能。
+
+### 缓存机制
+对频繁查询的数据实现缓存机制。
+
+### 连接池
+数据库连接使用连接池管理，优化资源使用。

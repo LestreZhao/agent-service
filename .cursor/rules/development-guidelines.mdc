@@ -5,6 +5,100 @@ alwaysApply: false
 ---
 # 开发指南
 
+## 代码结构
+
+### 配置管理
+所有配置集中在 `src/config/` 目录：
+- [env.py](mdc:src/config/env.py) - 环境变量配置
+- [database.py](mdc:src/config/database.py) - 数据库配置
+- [minio.py](mdc:src/config/minio.py) - MinIO 对象存储配置
+- [agents.py](mdc:src/config/agents.py) - 智能体配置
+- [tools.py](mdc:src/config/tools.py) - 工具配置
+
+### 图结构
+工作流的图结构定义在 `src/graph/` 目录：
+- [builder.py](mdc:src/graph/builder.py) - 图构建器
+- [nodes.py](mdc:src/graph/nodes.py) - 节点定义
+- [types.py](mdc:src/graph/types.py) - 类型定义
+
+## 环境配置
+
+### 必需环境变量
+参考 [ENV_CONFIG_GUIDE.md](mdc:ENV_CONFIG_GUIDE.md) 了解完整的环境配置：
+
+```bash
+# OpenAI API
+OPENAI_API_KEY=your_key
+OPENAI_BASE_URL=your_url
+
+# Tavily 搜索
+TAVILY_API_KEY=your_key
+
+# Oracle 数据库
+ORACLE_HOST=your_host
+ORACLE_PORT=1521
+ORACLE_SERVICE_NAME=your_service
+ORACLE_USERNAME=your_username
+ORACLE_PASSWORD=your_password
+```
+
+### 可选配置
+```bash
+# 禁用 MD 文件生成
+DISABLE_MD_FILE_GENERATION=true
+```
+
+## API 开发
+
+### FastAPI 应用
+API 应用定义在 `src/api/` 目录：
+- [app.py](mdc:src/api/app.py) - 主应用和路由
+- [document_routes.py](mdc:src/api/document_routes.py) - 文档相关路由
+
+### 服务器启动
+使用 [server.py](mdc:server.py) 启动 API 服务器。
+
+## 测试
+
+### 测试结构
+测试文件位于 `tests/` 目录：
+- `tests/integration/` - 集成测试
+
+### 运行测试
+```bash
+pytest tests/
+```
+
+## 工具开发
+
+### 工具装饰器
+使用 [src/tools/decorators.py](mdc:src/tools/decorators.py) 中的装饰器来标准化工具开发。
+
+### 新工具开发步骤
+1. 在 `src/tools/` 创建工具文件
+2. 使用标准装饰器
+3. 在相应智能体配置中添加工具
+4. 更新 [src/tools/__init__.py](mdc:src/tools/__init__.py)
+
+## 实用工具
+
+### 日志配置
+日志配置在 [src/utils/logger_config.py](mdc:src/utils/logger_config.py) 中。
+
+### 文件管理
+使用 [src/utils/file_manager.py](mdc:src/utils/file_manager.py) 进行文件操作。
+
+### 重试机制
+重试配置在 [src/utils/retry_config.py](mdc:src/utils/retry_config.py) 中。
+
+## 部署
+
+### 依赖管理
+项目使用 uv 进行依赖管理，配置在 [pyproject.toml](mdc:pyproject.toml) 中。
+
+### 构建和部署
+使用 [Makefile](mdc:Makefile) 中定义的命令进行构建和部署操作。
+
 ## 环境设置
 
 ### 虚拟环境
